@@ -11,8 +11,8 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
-          <Route element={<AppLayout />}>
             <Route path="/" element={<HomePage />} />
+          <Route element={<AppLayout />}>
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/layanan" element={<LayananManagement />} />
             <Route path="/users" element={<UserManagement />} />
