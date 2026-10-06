@@ -43,10 +43,28 @@ export default function BookingTable({ data }) {
           </thead>
           <tbody>
             {rows.map((b) => (
-              <tr key={b.id} className="border-b border-gray-100 last:border-0">
+              <tr key={b.id} className="border-b border-gray-100 align-top last:border-0">
                 <td className="px-3 py-2">{b.id}</td>
                 <td className="px-3 py-2">{b.pelanggan}</td>
-                <td className="px-3 py-2">{b.layanan}</td>
+
+                <td className="px-3 py-2">
+                  {b.items.length > 1 && (
+                    <p className="mb-1 text-xs font-semibold text-primary">{b.items.length} unit AC</p>
+                  )}
+
+                  <ul className="space-y-0.5">
+                    {b.items.map((it, i) => (
+                      <li key={i} className="text-xs">
+                        <span className="text-gray-500">{it.unit}:</span> {it.layanan}
+                      </li>
+                    ))}
+                  </ul>
+
+                  <p className="mt-1 text-xs font-semibold">
+                    Total Rp {b.items.reduce((jumlah, it) => jumlah + it.harga, 0).toLocaleString("id-ID")}
+                  </p>
+                </td>
+
                 <td className="px-3 py-2">{b.jadwal}</td>
                 <td className="px-3 py-2">{b.teknisi}</td>
                 <td className="px-3 py-2">
@@ -54,6 +72,7 @@ export default function BookingTable({ data }) {
                 </td>
               </tr>
             ))}
+
             {rows.length === 0 && (
               <tr>
                 <td colSpan={6} className="py-4 text-center text-gray-500">Tidak ada booking</td>

@@ -7,11 +7,39 @@ export const stats = [
 ];
 
 export const bookings = [
-  { id: "REG-001", pelanggan: "Budi Santoso", layanan: "Cuci AC", jadwal: "05 Okt 2026, 09:00", teknisi: "Rudi", status: "Selesai" },
-  { id: "REG-002", pelanggan: "Siti Rahma", layanan: "Isi Freon", jadwal: "05 Okt 2026, 10:30", teknisi: "Andre", status: "Sedang dikerjakan" },
-  { id: "REG-003", pelanggan: "Andi Wijaya", layanan: "Perbaikan AC Bocor", jadwal: "05 Okt 2026, 13:00", teknisi: "-", status: "Menunggu" },
-  { id: "REG-004", pelanggan: "Dewi Lestari", layanan: "Pasang AC Baru", jadwal: "05 Okt 2026, 14:00", teknisi: "Fajar", status: "Sedang dikerjakan" },
-  { id: "REG-005", pelanggan: "Rizky Pratama", layanan: "Cuci AC", jadwal: "06 Okt 2026, 08:00", teknisi: "-", status: "Menunggu" },
+  {
+    id: "REG-001", pelanggan: "Budi Santoso", jadwal: "05 Okt 2026, 09:00", teknisi: "Rudi", status: "Selesai",
+    items: [
+      { unit: "AC Ruang Tamu", layananId: 2, layanan: "Cuci AC Split 1,5 - 2 PK", harga: 100000 },
+      { unit: "AC Kamar Utama", layananId: 3, layanan: "Isi Freon R32", harga: 200000 },
+    ],
+  },
+  {
+    id: "REG-002", pelanggan: "Siti Rahma", jadwal: "05 Okt 2026, 10:30", teknisi: "Andre", status: "Sedang dikerjakan",
+    items: [
+      { unit: "AC Kamar", layananId: 3, layanan: "Isi Freon R32", harga: 200000 },
+    ],
+  },
+  {
+    id: "REG-003", pelanggan: "Andi Wijaya", jadwal: "05 Okt 2026, 13:00", teknisi: "-", status: "Menunggu",
+    items: [
+      { unit: "AC Dapur", layananId: 4, layanan: "Perbaikan AC Bocor", harga: 250000 },
+      { unit: "AC Ruang Makan", layananId: 1, layanan: "Cuci AC Split 0,5 - 1 PK", harga: 75000 },
+      { unit: "AC Kamar Anak", layananId: 1, layanan: "Cuci AC Split 0,5 - 1 PK", harga: 75000 },
+    ],
+  },
+  {
+    id: "REG-004", pelanggan: "Dewi Lestari", jadwal: "05 Okt 2026, 14:00", teknisi: "Fajar", status: "Sedang dikerjakan",
+    items: [
+      { unit: "AC Baru Ruang Tamu", layananId: 6, layanan: "Pasang AC Baru", harga: 350000 },
+    ],
+  },
+  {
+    id: "REG-005", pelanggan: "Rizky Pratama", jadwal: "06 Okt 2026, 08:00", teknisi: "-", status: "Menunggu",
+    items: [
+      { unit: "AC Kantor", layananId: 2, layanan: "Cuci AC Split 1,5 - 2 PK", harga: 100000 },
+    ],
+  },
 ];
 
 export const fleet = [
