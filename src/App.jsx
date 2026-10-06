@@ -4,7 +4,7 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import LayananManagement from "./pages/LayananManagement";
 import UserManagement from "./pages/UserManagement";
-
+import HomePage from "./pages/HomePage";
 function App() {
   return (
     <div>
@@ -12,6 +12,7 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route element={<AppLayout />}>
+            <Route path="/" element={<HomePage />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/layanan" element={<LayananManagement />} />
             <Route path="/users" element={<UserManagement />} />
@@ -21,5 +22,4 @@ function App() {
     </div>
   );
 }
-
 export default App;
