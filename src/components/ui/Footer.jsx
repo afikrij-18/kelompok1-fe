@@ -163,7 +163,7 @@ export default function Footer() {
             <button
               type="button"
               onClick={() =>
-                window.alert("Membuka Portal Khusus Admin & Teknisi SejukPro")
+                window.location.href = "/login"
               }
               className="font-medium underline hover:text-[#2c5ead]"
             >
