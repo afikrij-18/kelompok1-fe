@@ -8,10 +8,13 @@ import {
   FileText,
   Settings,
   LogOut,
+  CalendarPlus,
 } from "lucide-react";
+import { logout, getUser } from "../../services/authService";
 
 const menuOperasional = [
   { name: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
+  { name: "Booking Baru", path: "/booking/baru", icon: CalendarPlus },
   { name: "Jadwal & Dispatch", path: null, icon: CalendarClock },
   { name: "Layanan AC", path: "/layanan", icon: Snowflake },
   { name: "Teknisi Fleet", path: null, icon: Wrench },
@@ -63,9 +66,10 @@ function MenuGroup({ title, items }) {
 export default function Sidebar() {
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
+  const user = getUser();
 
+  const handleLogout = () => {
+    logout();
     navigate("/login", { replace: true });
   };
 
@@ -73,12 +77,9 @@ export default function Sidebar() {
     <aside className="hidden h-full w-64 shrink-0 flex-col justify-between bg-primary p-4 text-white md:flex">
       <div className="min-h-0 flex-1 overflow-y-auto">
         <Link to="/" className="mb-6 flex items-center gap-2 border-b border-white/20 pb-4">
-          <div className="flex h-8 w-8 items-center justify-center rounded bg-white font-bold text-primary">
-            X
-          </div>
+          <div className="flex h-8 w-8 items-center justify-center rounded bg-white font-bold text-primary">X</div>
           <span className="font-bold">ServiceAC</span>
         </Link>
-
         <MenuGroup title="Menu Operasional" items={menuOperasional} />
         <div className="my-4 border-t border-white/20" />
         <MenuGroup title="Laporan & Sistem" items={menuLaporan} />
@@ -86,17 +87,15 @@ export default function Sidebar() {
 
       <div className="mt-4 flex items-center justify-between rounded-lg bg-white/10 p-3">
         <div className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded bg-white font-bold text-primary">
-            A
+          <div className="flex h-9 w-9 items-center justify-center rounded bg-white font-bold uppercase text-primary">
+            {user?.name?.[0] || "?"}
           </div>
-          <span className="text-sm font-medium">Admin</span>
+          <div className="leading-tight">
+            <p className="text-sm font-medium">{user?.name || "Tamu"}</p>
+            <p className="text-xs capitalize text-soft">{user?.role}</p>
+          </div>
         </div>
-
-        <button
-          onClick={handleLogout}
-          title="Keluar"
-          className="rounded p-1 hover:bg-accent"
-        >
+        <button onClick={handleLogout} title="Keluar" className="rounded p-1 hover:bg-accent">
           <LogOut size={18} />
         </button>
       </div>

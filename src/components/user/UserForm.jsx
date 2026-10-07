@@ -1,3 +1,4 @@
+// src/components/user/UserForm.jsx
 import { useState } from "react";
 import { X } from "lucide-react";
 
@@ -10,23 +11,56 @@ const kosong = {
   status: "Aktif",
 };
 
+// nama field backend -> nama field form
+const FIELD_DARI_API = {
+  name: "nama",
+  email: "email",
+  phone: "telepon",
+  password: "password",
+  role: "role",
+  status: "status",
+};
+
+// ubah error dari server menjadi pesan di bawah kolom yang bersangkutan
+const errorDariServer = (err) => {
+  const e = {};
+
+  if (Array.isArray(err.errors)) {
+    err.errors.forEach((x) => {
+      e[FIELD_DARI_API[x.field] || "form"] = x.message;
+    });
+  } else if (err.status === 409) {
+    e.email = err.message; // 409 dari backend = email sudah digunakan
+  } else if (err instanceof TypeError) {
+    e.form = "Tidak dapat terhubung ke server. Pastikan backend sudah berjalan.";
+  } else {
+    e.form = err.message;
+  }
+
+  if (Object.keys(e).length === 0) e.form = err.message;
+  return e;
+};
+
 export default function UserForm({ initialData, existingUsers, onSubmit, onClose }) {
-  // Langkah 1.3: mode edit jika initialData ada
   const isEdit = Boolean(initialData);
 
   const [form, setForm] = useState(initialData ? { ...kosong, ...initialData } : kosong);
   const [errors, setErrors] = useState({});
+  const [saving, setSaving] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm({ ...form, [name]: value });
-    setErrors({ ...errors, [name]: "" });
+    setErrors({ ...errors, [name]: "", form: "" });
   };
 
+  // validasi, aturannya mengikuti models/User.js dan UserController.js
   const validate = () => {
     const e = {};
 
-    if (!form.nama.trim()) e.nama = "Nama wajib diisi";
+    if (form.nama.trim().length < 2 || form.nama.trim().length > 100) {
+      e.nama = "Nama harus 2-100 karakter";
+    }
 
     if (!form.email.trim()) {
       e.email = "Email wajib diisi";
@@ -40,10 +74,12 @@ export default function UserForm({ initialData, existingUsers, onSubmit, onClose
       e.email = "Email sudah terdaftar";
     }
 
-    if (!/^\d{10,13}$/.test(form.telepon)) {
-      e.telepon = "Telepon harus 10-13 digit angka";
+    // telepon boleh kosong, kalau diisi 10-15 digit angka
+    if (form.telepon && !/^\d{10,15}$/.test(form.telepon)) {
+      e.telepon = "Telepon harus 10-15 digit angka";
     }
 
+    // Langkah 4.1: password hanya dicek saat tambah, saat edit diganti lewat dialog sendiri
     if (!isEdit && form.password.length < 6) {
       e.password = "Password minimal 6 karakter";
     }
@@ -51,15 +87,20 @@ export default function UserForm({ initialData, existingUsers, onSubmit, onClose
     return e;
   };
 
-  const handleSubmit = (ev) => {
+  const handleSubmit = async (ev) => {
     ev.preventDefault();
     const hasil = validate();
     setErrors(hasil);
-
     if (Object.keys(hasil).length > 0) return;
 
-    const { password, ...data } = form;
-    onSubmit(data);
+    setSaving(true);
+    try {
+      await onSubmit(form);
+    } catch (err) {
+      setErrors(errorDariServer(err));
+    } finally {
+      setSaving(false);
+    }
   };
 
   const inputClass = (name) =>
@@ -68,24 +109,23 @@ export default function UserForm({ initialData, existingUsers, onSubmit, onClose
     }`;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-      onClick={onClose}
-    >
-      <div
-        className="max-h-full w-full max-w-md overflow-y-auto rounded-xl bg-white p-6 shadow-xl"
-        onClick={(e) => e.stopPropagation()}
-      >
+    // Langkah 4.2: area gelap tidak menutup dialog, hanya tombol Batal atau X
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="max-h-full w-full max-w-md overflow-y-auto rounded-xl bg-white p-6 shadow-xl">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-primary">
             {isEdit ? "Edit User" : "Tambah User"}
           </h2>
-          <button onClick={onClose} className="rounded p-1 hover:bg-gray-100">
+          <button onClick={onClose} disabled={saving} className="rounded p-1 hover:bg-gray-100 disabled:opacity-60">
             <X size={18} />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} noValidate className="space-y-3">
+          {errors.form && (
+            <p className="rounded-lg bg-red-100 px-3 py-2 text-sm text-red-700">{errors.form}</p>
+          )}
+
           <div>
             <label className="mb-1 block text-sm font-medium">Nama</label>
             <input name="nama" value={form.nama} onChange={handleChange} className={inputClass("nama")} />
@@ -99,15 +139,23 @@ export default function UserForm({ initialData, existingUsers, onSubmit, onClose
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium">Telepon</label>
+            <label className="mb-1 block text-sm font-medium">Telepon (opsional)</label>
             <input name="telepon" value={form.telepon} onChange={handleChange} className={inputClass("telepon")} />
             {errors.telepon && <p className="mt-1 text-xs text-red-600">{errors.telepon}</p>}
           </div>
 
+          {/* Langkah 4.3: kolom password hanya saat tambah user */}
           {!isEdit && (
             <div>
               <label className="mb-1 block text-sm font-medium">Password</label>
-              <input name="password" type="password" value={form.password} onChange={handleChange} className={inputClass("password")} />
+              <input
+                name="password"
+                type="password"
+                value={form.password}
+                onChange={handleChange}
+                autoComplete="new-password"
+                className={inputClass("password")}
+              />
               {errors.password && <p className="mt-1 text-xs text-red-600">{errors.password}</p>}
             </div>
           )}
@@ -117,9 +165,10 @@ export default function UserForm({ initialData, existingUsers, onSubmit, onClose
               <label className="mb-1 block text-sm font-medium">Role</label>
               <select name="role" value={form.role} onChange={handleChange} className={inputClass("role")}>
                 <option>Admin</option>
+                <option>Owner</option>
                 <option>Teknisi</option>
-                <option>Pelanggan</option>
               </select>
+              {errors.role && <p className="mt-1 text-xs text-red-600">{errors.role}</p>}
             </div>
             <div>
               <label className="mb-1 block text-sm font-medium">Status</label>
@@ -127,6 +176,7 @@ export default function UserForm({ initialData, existingUsers, onSubmit, onClose
                 <option>Aktif</option>
                 <option>Nonaktif</option>
               </select>
+              {errors.status && <p className="mt-1 text-xs text-red-600">{errors.status}</p>}
             </div>
           </div>
 
@@ -134,15 +184,17 @@ export default function UserForm({ initialData, existingUsers, onSubmit, onClose
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg border border-gray-300 px-4 py-2 text-sm hover:bg-gray-100"
+              disabled={saving}
+              className="rounded-lg border border-gray-300 px-4 py-2 text-sm hover:bg-gray-100 disabled:opacity-60"
             >
               Batal
             </button>
             <button
               type="submit"
-              className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-secondary"
+              disabled={saving}
+              className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-secondary disabled:opacity-60"
             >
-              Simpan
+              {saving ? "Menyimpan..." : "Simpan"}
             </button>
           </div>
         </form>

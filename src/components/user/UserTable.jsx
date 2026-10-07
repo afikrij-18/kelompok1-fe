@@ -1,5 +1,7 @@
+// src/components/user/UserTable.jsx
+// Tambahan: ikon KeyRound dan prop onChangePassword
 import { useState } from "react";
-import { Search, Pencil, Trash2, Plus } from "lucide-react";
+import { Search, Pencil, Trash2, Plus, KeyRound } from "lucide-react";
 
 const roleColor = {
   Admin: "bg-primary text-white",
@@ -13,7 +15,7 @@ const statusColor = {
 
 const roles = ["Semua", "Admin", "Owner", "Teknisi"];
 
-export default function UserTable({ data, onAdd, onEdit, onDelete }) {
+export default function UserTable({ data, onAdd, onEdit, onDelete, onChangePassword }) {
   const [keyword, setKeyword] = useState("");
   const [role, setRole] = useState("Semua");
 
@@ -92,6 +94,14 @@ export default function UserTable({ data, onAdd, onEdit, onDelete }) {
                       className="rounded p-1.5 text-secondary hover:bg-soft"
                     >
                       <Pencil size={16} />
+                    </button>
+                    {/* Langkah 2.1: tombol ganti password, membuka dialog terpisah */}
+                    <button
+                      onClick={() => onChangePassword(u)}
+                      title="Ganti Password"
+                      className="rounded p-1.5 text-amber-600 hover:bg-amber-50"
+                    >
+                      <KeyRound size={16} />
                     </button>
                     <button
                       onClick={() => onDelete(u)}

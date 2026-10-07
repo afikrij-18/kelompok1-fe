@@ -22,3 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Environment variables (alamat backend tiap komputer bisa berbeda)
+# .env tidak ikut Git, .env.example yang ikut sebagai contoh
+.env
+.env.*
+!.env.example

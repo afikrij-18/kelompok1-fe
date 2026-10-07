@@ -1,13 +1,37 @@
+import { useState } from "react";
 import { Wrench, Mail, Lock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { login } from "../services/authService";
+
+const DEFAULT_EMAIL = "admin@gmail.com";
+const DEFAULT_PASSWORD = "admin123";
 
 export default function Login() {
   const navigate = useNavigate();
 
-  const handleLogin = (e) => {
+  const [email, setEmail] = useState(DEFAULT_EMAIL);
+  const [password, setPassword] = useState(DEFAULT_PASSWORD);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = async (e) => {
     e.preventDefault();
-    // Langsung pindah ke halaman /dashboard tanpa validasi apapun
-    navigate("/dashboard");
+    setError("");
+    setLoading(true);
+
+    try {
+      await login(email, password);
+
+      navigate("/dashboard", { replace: true });
+    } catch (err) {
+      setError(
+        err instanceof TypeError
+          ? "Tidak dapat terhubung ke server. Pastikan backend sudah berjalan."
+          : err.message
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -59,6 +83,12 @@ export default function Login() {
           {/* Form */}
           <form onSubmit={handleLogin} className="space-y-5">
 
+            {error && (
+              <p className="rounded-lg bg-red-100 px-3 py-2 text-sm text-red-700">
+                {error}
+              </p>
+            )}
+
             {/* Email */}
             <div>
               <label
@@ -86,7 +116,8 @@ export default function Login() {
                   id="email"
                   name="email"
                   type="email"
-                  defaultValue="admin@servisac.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   required
                   className="
                     h-12
@@ -137,7 +168,8 @@ export default function Login() {
                   id="password"
                   name="password"
                   type="password"
-                  defaultValue="admin123"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   required
                   className="
                     h-12
@@ -164,6 +196,7 @@ export default function Login() {
             {/* Login Button */}
             <button
               type="submit"
+              disabled={loading}
               className="
                 h-12
                 w-full
@@ -181,9 +214,11 @@ export default function Login() {
                 focus:ring-2
                 focus:ring-[#4BB8FA]
                 focus:ring-offset-2
+                disabled:cursor-not-allowed
+                disabled:opacity-60
               "
             >
-              Masuk
+              {loading ? "Memproses..." : "Masuk"}
             </button>
           </form>
 
@@ -200,11 +235,11 @@ export default function Login() {
             <p className="text-xs text-slate-500">
               Default:{" "}
               <span className="font-medium text-[#2C5EAD]">
-                admin@servisac.com
+                {DEFAULT_EMAIL}
               </span>{" "}
               /{" "}
               <span className="font-medium text-[#2C5EAD]">
-                admin123
+                {DEFAULT_PASSWORD}
               </span>
             </p>
           </div>
