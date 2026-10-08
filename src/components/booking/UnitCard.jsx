@@ -1,5 +1,5 @@
-// src/components/booking/UnitCard.jsx
-// Langkah 6: kartu satu unit AC (layanan, spesifikasi, keluhan)
+// src/components/booking/UnitCard.jsx  (FE, DIGANTI seluruh isi)
+// kartu satu unit AC (layanan, spesifikasi, keluhan), merek "Lainnya" bisa ditulis
 import { Trash2 } from "lucide-react";
 import { MEREK, KAPASITAS, TIPE } from "../../data/bookingOptions";
 import { formatRupiah, formatDurasi, inputClass } from "../../utils/booking";
@@ -7,9 +7,9 @@ import { formatRupiah, formatDurasi, inputClass } from "../../utils/booking";
 const selectKecil =
   "w-full rounded border border-soft bg-white px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40";
 
-// Langkah 6.1: onChange(field, value) dipanggil per field, onRemove menghapus unit ini
+// Langkah 5.1: onChange(field, value) dipanggil per field, onRemove menghapus unit ini
 export default function UnitCard({ index, data, error = {}, canRemove, layananList, onChange, onRemove }) {
-  // Langkah 6.2: kategori untuk mengelompokkan pilihan layanan
+  // Langkah 5.2: kategori untuk mengelompokkan pilihan layanan
   const kategoriList = [...new Set(layananList.map((l) => l.kategori))];
   const dipilih = layananList.find((l) => String(l.id) === String(data.layananId));
 
@@ -24,7 +24,7 @@ export default function UnitCard({ index, data, error = {}, canRemove, layananLi
           <span className="text-sm font-bold text-slate-800">Spesifikasi AC {index + 1}</span>
         </div>
 
-        {/* Langkah 6.3: tombol hapus hanya jika unit lebih dari satu */}
+        {/* Langkah 5.3: tombol hapus hanya jika unit lebih dari satu */}
         {canRemove && (
           <button
             type="button"
@@ -63,7 +63,7 @@ export default function UnitCard({ index, data, error = {}, canRemove, layananLi
           </select>
           {error.layananId && <p className="mt-1 text-xs text-red-600">{error.layananId}</p>}
 
-          {/* Langkah 6.4: info layanan terpilih */}
+          {/* Langkah 5.4: info layanan terpilih */}
           {dipilih && (
             <p className="mt-1 text-xs text-slate-500">
               {dipilih.deskripsi} | Estimasi {formatDurasi(dipilih.durasi)}
@@ -111,7 +111,7 @@ export default function UnitCard({ index, data, error = {}, canRemove, layananLi
             </div>
           </div>
 
-          {/* Langkah 3.1: kolom tulis merek, hanya muncul saat memilih "Lainnya" */}
+          {/* Langkah 5.5: kolom tulis merek, hanya muncul saat memilih "Lainnya" */}
           {data.merek === "Lainnya" && (
             <div className="mt-3 md:w-1/2">
               <span className="mb-1 block text-[11px] text-slate-400">Tulis Merek AC *</span>

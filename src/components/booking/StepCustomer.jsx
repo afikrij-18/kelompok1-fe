@@ -1,6 +1,6 @@
 // src/components/booking/StepCustomer.jsx
 // Langkah 5: langkah 1, data pelanggan
-import { User, Smartphone, MapPin, ShieldCheck, Layers, ArrowRight } from "lucide-react";
+import { User, Smartphone, MapPin, ShieldCheck, Layers, ArrowRight, AlertTriangle } from "lucide-react";
 import { JAMINAN, MAKS_UNIT } from "../../data/bookingOptions";
 import { inputClass } from "../../utils/booking";
 
@@ -25,7 +25,8 @@ function Field({ id, label, icon: Icon, error, hint, children }) {
 }
 
 // Langkah 5.2: onChange menerima event input, dari Booking.jsx
-export default function StepCustomer({ data, errors, onChange, onNext, labelNext }) {
+// peringatan = daftar teks dari cekPelanggan (nomor HP atau nama yang sudah terdaftar)
+export default function StepCustomer({ data, errors, onChange, onNext, labelNext, peringatan = [] }) {
   return (
     <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-12">
       <div className="rounded-xl border border-soft bg-white p-6 shadow-sm lg:col-span-8">
@@ -66,6 +67,18 @@ export default function StepCustomer({ data, errors, onChange, onNext, labelNext
               className={`${inputClass(errors.telepon)} pl-10`}
             />
           </Field>
+
+          {/* Langkah 5.4: peringatan pelanggan sudah terdaftar, tidak memblokir */}
+          {peringatan.length > 0 && (
+            <div className="flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-800">
+              <AlertTriangle size={18} className="mt-0.5 shrink-0" />
+              <ul className="space-y-1">
+                {peringatan.map((p) => (
+                  <li key={p}>{p}</li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           <Field id="alamat" label="Alamat Lengkap Lokasi Service" icon={MapPin} error={errors.alamat}>
             <textarea

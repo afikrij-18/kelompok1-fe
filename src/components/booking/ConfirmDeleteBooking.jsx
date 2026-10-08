@@ -1,7 +1,8 @@
-// src/components/layanan/ConfirmDeleteLayanan.jsx
+// src/components/booking/ConfirmDeleteBooking.jsx
+// konfirmasi hapus booking
 import { AlertTriangle } from "lucide-react";
 
-export default function ConfirmDeleteLayanan({ item, loading = false, onConfirm, onClose }) {
+export default function ConfirmDeleteBooking({ item, loading = false, onConfirm, onClose }) {
   return (
     // area gelap tidak menutup dialog, hanya tombol Batal
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
@@ -10,11 +11,12 @@ export default function ConfirmDeleteLayanan({ item, loading = false, onConfirm,
           <AlertTriangle className="text-red-600" size={24} />
         </div>
 
-        <h2 className="text-lg font-semibold">Hapus Layanan?</h2>
+        <h2 className="text-lg font-semibold">Hapus Booking?</h2>
 
         <p className="mt-2 text-sm text-gray-500">
-          Layanan <span className="font-semibold text-gray-800">{item.nama}</span> ({item.kategori}, Rp{" "}
-          {item.harga.toLocaleString("id-ID")}) akan dihapus permanen dan tidak bisa dikembalikan.
+          Booking <span className="font-mono font-semibold text-gray-800">{item.kode}</span> atas nama{" "}
+          <span className="font-semibold text-gray-800">{item.pelanggan}</span> ({item.items.length} unit AC) akan
+          dihapus permanen. Untuk membatalkan tanpa menghapus, ubah statusnya menjadi Dibatalkan.
         </p>
 
         <div className="mt-5 flex justify-center gap-2">

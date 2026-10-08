@@ -1,29 +1,48 @@
+// src/components/layanan/LayananForm.jsx
+// Field mengikuti models/Service.js: nama, kategori, harga, deskripsi
 import { useState } from "react";
 import { X } from "lucide-react";
 
-const kosong = {
-  nama: "",
-  kategori: "Perawatan",
-  harga: "",
-  durasi: "",
-  deskripsi: "",
-  status: "Aktif",
+// ubah error dari server menjadi pesan di form
+const errorDariServer = (err) => {
+  if (err instanceof TypeError) {
+    return { form: "Tidak dapat terhubung ke server. Pastikan backend sudah berjalan." };
+  }
+  // 404 "Kategori tidak ditemukan" ditampilkan di bawah kolom kategori
+  if (err.status === 404 && /kategori/i.test(err.message)) {
+    return { categoryId: err.message };
+  }
+  return { form: err.message };
 };
 
-export default function LayananForm({ initialData, existingLayanan, onSubmit, onClose }) {
+// samakan huruf besar-kecil dan spasi ganda sebelum membandingkan nama
+const normal = (s) => s.trim().replace(/\s+/g, " ").toLowerCase();
+
+export default function LayananForm({ initialData, existingLayanan, kategoriList, onSubmit, onClose }) {
   const isEdit = Boolean(initialData);
 
+  // select bekerja dengan teks, jadi id kategori, harga disimpan sebagai String di form
   const [form, setForm] = useState(
     initialData
-      ? { ...initialData, harga: String(initialData.harga), durasi: String(initialData.durasi) }
-      : kosong
+      ? {
+          ...initialData,
+          categoryId: String(initialData.categoryId),
+          harga: String(initialData.harga),
+        }
+      : {
+          nama: "",
+          categoryId: kategoriList.length ? String(kategoriList[0].id) : "",
+          harga: "",
+          deskripsi: "",
+        }
   );
   const [errors, setErrors] = useState({});
+  const [saving, setSaving] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm({ ...form, [name]: value });
-    setErrors({ ...errors, [name]: "" });
+    setErrors({ ...errors, [name]: "", form: "" });
   };
 
   const validate = () => {
@@ -33,38 +52,39 @@ export default function LayananForm({ initialData, existingLayanan, onSubmit, on
       e.nama = "Nama layanan wajib diisi";
     } else if (
       existingLayanan.some(
-        (l) => l.nama.toLowerCase() === form.nama.trim().toLowerCase() && l.id !== form.id
+        (l) => normal(l.nama) === normal(form.nama) && l.id !== form.id
       )
     ) {
       e.nama = "Nama layanan sudah ada";
     }
 
-    const harga = Number(form.harga);
-    if (!form.harga || !Number.isInteger(harga) || harga <= 0) {
-      e.harga = "Harga harus berupa angka lebih dari 0";
+    if (!form.categoryId) {
+      e.categoryId = "Kategori wajib dipilih";
     }
 
-    const durasi = Number(form.durasi);
-    if (!form.durasi || !Number.isInteger(durasi) || durasi <= 0) {
-      e.durasi = "Durasi harus berupa angka menit lebih dari 0";
+    // harga di database bertipe INTEGER, jadi harus bilangan bulat
+    const harga = Number(form.harga);
+    if (!form.harga || !Number.isInteger(harga) || harga <= 0) {
+      e.harga = "Harga harus berupa angka bulat lebih dari 0";
     }
 
     return e;
   };
 
-  const handleSubmit = (ev) => {
+  const handleSubmit = async (ev) => {
     ev.preventDefault();
     const hasil = validate();
     setErrors(hasil);
     if (Object.keys(hasil).length > 0) return;
 
-    onSubmit({
-      ...form,
-      nama: form.nama.trim(),
-      deskripsi: form.deskripsi.trim(),
-      harga: Number(form.harga),
-      durasi: Number(form.durasi),
-    });
+    setSaving(true);
+    try {
+      await onSubmit(form);
+    } catch (err) {
+      setErrors(errorDariServer(err));
+    } finally {
+      setSaving(false);
+    }
   };
 
   const inputClass = (name) =>
@@ -73,24 +93,23 @@ export default function LayananForm({ initialData, existingLayanan, onSubmit, on
     }`;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-      onClick={onClose}
-    >
-      <div
-        className="max-h-full w-full max-w-md overflow-y-auto rounded-xl bg-white p-6 shadow-xl"
-        onClick={(e) => e.stopPropagation()}
-      >
+    // area gelap tidak menutup dialog, hanya tombol Batal atau X
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="max-h-full w-full max-w-md overflow-y-auto rounded-xl bg-white p-6 shadow-xl">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-primary">
             {isEdit ? "Edit Layanan" : "Tambah Layanan"}
           </h2>
-          <button onClick={onClose} className="rounded p-1 hover:bg-gray-100">
+          <button onClick={onClose} disabled={saving} className="rounded p-1 hover:bg-gray-100 disabled:opacity-60">
             <X size={18} />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} noValidate className="space-y-3">
+          {errors.form && (
+            <p className="rounded-lg bg-red-100 px-3 py-2 text-sm text-red-700">{errors.form}</p>
+          )}
+
           <div>
             <label className="mb-1 block text-sm font-medium">Nama Layanan</label>
             <input name="nama" value={form.nama} onChange={handleChange} className={inputClass("nama")} />
@@ -99,52 +118,41 @@ export default function LayananForm({ initialData, existingLayanan, onSubmit, on
 
           <div>
             <label className="mb-1 block text-sm font-medium">Kategori</label>
-            <select name="kategori" value={form.kategori} onChange={handleChange} className={inputClass("kategori")}>
-              <option>Perawatan</option>
-              <option>Perbaikan</option>
-              <option>Instalasi</option>
+            <select name="categoryId" value={form.categoryId} onChange={handleChange} className={inputClass("categoryId")}>
+              {kategoriList.length === 0 && <option value="">Belum ada kategori</option>}
+              {kategoriList.map((k) => (
+                <option key={k.id} value={k.id}>{k.nama}</option>
+              ))}
             </select>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="mb-1 block text-sm font-medium">Harga (Rp)</label>
-              <input name="harga" type="number" min="0" value={form.harga} onChange={handleChange} className={inputClass("harga")} />
-              {errors.harga && <p className="mt-1 text-xs text-red-600">{errors.harga}</p>}
-            </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium">Durasi (menit)</label>
-              <input name="durasi" type="number" min="0" value={form.durasi} onChange={handleChange} className={inputClass("durasi")} />
-              {errors.durasi && <p className="mt-1 text-xs text-red-600">{errors.durasi}</p>}
-            </div>
+            {errors.categoryId && <p className="mt-1 text-xs text-red-600">{errors.categoryId}</p>}
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium">Deskripsi</label>
+            <label className="mb-1 block text-sm font-medium">Harga (Rp)</label>
+            <input name="harga" type="number" min="0" value={form.harga} onChange={handleChange} className={inputClass("harga")} />
+            {errors.harga && <p className="mt-1 text-xs text-red-600">{errors.harga}</p>}
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium">Deskripsi (opsional)</label>
             <textarea name="deskripsi" rows={3} value={form.deskripsi} onChange={handleChange} className={inputClass("deskripsi")} />
-          </div>
-
-          <div>
-            <label className="mb-1 block text-sm font-medium">Status</label>
-            <select name="status" value={form.status} onChange={handleChange} className={inputClass("status")}>
-              <option>Aktif</option>
-              <option>Nonaktif</option>
-            </select>
           </div>
 
           <div className="flex justify-end gap-2 pt-2">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg border border-gray-300 px-4 py-2 text-sm hover:bg-gray-100"
+              disabled={saving}
+              className="rounded-lg border border-gray-300 px-4 py-2 text-sm hover:bg-gray-100 disabled:opacity-60"
             >
               Batal
             </button>
             <button
               type="submit"
-              className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-secondary"
+              disabled={saving}
+              className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-secondary disabled:opacity-60"
             >
-              Simpan
+              {saving ? "Menyimpan..." : "Simpan"}
             </button>
           </div>
         </form>

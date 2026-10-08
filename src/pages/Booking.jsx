@@ -1,4 +1,6 @@
-// src/pages/Booking.jsx
+// src/pages/Booking.jsx  (FE, DIGANTI seluruh isi)
+// halaman form booking di /booking/baru (di dalam layout admin)
+// Versi ini TIDAK memakai bookingService, jadi tidak ada import createBooking
 import { useEffect, useRef, useState } from "react";
 import StepIndicator from "../components/booking/StepIndicator";
 import StepCustomer from "../components/booking/StepCustomer";
@@ -11,6 +13,7 @@ import { bookings } from "../data/dummy";
 import { MAKS_UNIT } from "../data/bookingOptions";
 import { formatJadwal, slotTerlewat, hitungDurasi, namaMerek } from "../utils/booking";
 
+// Langkah 7.1: hanya layanan berstatus Aktif yang bisa dipilih
 const layananAktif = semuaLayanan.filter((l) => l.status === "Aktif");
 
 const customerKosong = { nama: "", telepon: "", alamat: "" };
@@ -19,7 +22,7 @@ const jadwalKosong = { tanggal: "", jam: "" };
 export default function Booking() {
   const [step, setStep] = useState(1);
 
-  // Langkah 1.1: langkah tertinggi yang pernah dicapai (maks 4 = review)
+  // Langkah 7.2: langkah tertinggi yang pernah dicapai (maks 4 = review)
   // sudahSampaiReview true berarti tombol Lanjutkan langsung kembali ke review
   const [maxStep, setMaxStep] = useState(1);
   const sudahSampaiReview = maxStep >= 4;
@@ -31,6 +34,7 @@ export default function Booking() {
   const [submitting, setSubmitting] = useState(false);
   const [hasil, setHasil] = useState(null);
 
+  // Langkah 7.3: daftar unit, minimal satu. uid = key dan penanda error per unit
   const uidRef = useRef(1);
   const unitBaru = () => ({
     uid: uidRef.current++,
@@ -44,18 +48,19 @@ export default function Booking() {
   });
   const [units, setUnits] = useState(() => [unitBaru()]);
 
-  // yang di-scroll adalah area kanan layout, jadi pakai scrollIntoView
+  // Langkah 7.4: yang di-scroll adalah area kanan layout, jadi pakai scrollIntoView
   const topRef = useRef(null);
   useEffect(() => {
     topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [step]);
 
+  // Langkah 7.5: unit digabung dengan objek layanan yang dipilih
   const ringkasan = units.map((u) => ({
     ...u,
     layanan: layananAktif.find((l) => String(l.id) === String(u.layananId)),
   }));
 
-  // Langkah 1.2: semua perpindahan langkah lewat sini agar maxStep ikut tercatat
+  // Langkah 7.6: semua perpindahan langkah lewat sini agar maxStep ikut tercatat
   const pindah = (n) => {
     setStep(n);
     setMaxStep((m) => Math.max(m, Math.min(n, 4)));
@@ -98,6 +103,7 @@ export default function Booking() {
 
     if (n === 1) {
       if (customer.nama.trim().length < 2) e.nama = "Nama minimal 2 karakter";
+      // aturan telepon sama dengan backend, 10-15 digit angka
       if (!/^\d{10,15}$/.test(teleponBersih)) e.telepon = "No. HP harus 10-15 digit angka";
       if (customer.alamat.trim().length < 10) e.alamat = "Alamat terlalu singkat, tulis lengkap beserta patokan";
     }
@@ -125,7 +131,7 @@ export default function Booking() {
   };
 
   // ---------- navigasi ----------
-  // Langkah 1.3: validasi langkah ini, lalu
+  // Langkah 7.7: validasi langkah ini, lalu
   // - belum pernah sampai review: lanjut ke langkah berikutnya
   // - sudah pernah sampai review: kembali ke review, setelah semua langkah dicek ulang
   const lanjut = () => {
@@ -161,6 +167,7 @@ export default function Booking() {
     pindah(n);
   };
 
+  // Langkah 7.8: simpan booking
   const kirim = () => {
     const e = validasi(4);
     setErrors(e);
@@ -168,15 +175,18 @@ export default function Booking() {
 
     setSubmitting(true);
 
+    // kode dari jumlah booking dummy, nanti dibuat oleh backend
     const kode = `REG-${String(bookings.length + 1).padStart(3, "0")}`;
 
+    // bentuk sama dengan bookings di dummy.js, ditambah kontak dan spesifikasi unit
+    // nama layanan dan harga disalin agar booking lama tidak berubah saat katalog diubah
     const payload = {
       id: kode,
       pelanggan: customer.nama.trim(),
       telepon: teleponBersih,
       alamat: customer.alamat.trim(),
       jadwal: formatJadwal(jadwal.tanggal, jadwal.jam),
-      teknisi: "-",
+      teknisi: "-", // ditugaskan lewat Jadwal & Dispatch
       status: "Menunggu",
       items: ringkasan.map((u) => ({
         unit: u.lokasi.trim(),
@@ -192,6 +202,7 @@ export default function Booking() {
 
     console.log("Booking baru:", payload);
 
+    // Langkah 7.9: simulasi menunggu respons server, diganti pemanggilan API nanti
     setTimeout(() => {
       setHasil(payload);
       setSubmitting(false);
@@ -206,11 +217,11 @@ export default function Booking() {
     setSetuju(false);
     setErrors({});
     setHasil(null);
-    setMaxStep(1); // Langkah 1.4: booking baru mulai lagi dari alur biasa
+    setMaxStep(1); // booking baru mulai lagi dari alur biasa
     setStep(1);
   };
 
-  // Langkah 1.5: teks tombol Lanjutkan, kosong = memakai teks bawaan tiap langkah
+  // Langkah 7.10: teks tombol Lanjutkan, kosong = memakai teks bawaan tiap langkah
   const labelNext = sudahSampaiReview ? "Simpan & Kembali ke Review" : undefined;
 
   return (

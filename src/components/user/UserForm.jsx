@@ -21,6 +21,9 @@ const FIELD_DARI_API = {
   status: "status",
 };
 
+// samakan huruf besar-kecil dan spasi ganda sebelum membandingkan nama
+const normal = (s) => s.trim().replace(/\s+/g, " ").toLowerCase();
+
 // ubah error dari server menjadi pesan di bawah kolom yang bersangkutan
 const errorDariServer = (err) => {
   const e = {};
@@ -58,8 +61,12 @@ export default function UserForm({ initialData, existingUsers, onSubmit, onClose
   const validate = () => {
     const e = {};
 
+    const lain = existingUsers.filter((u) => u.id !== form.id); // user lain, yang sedang diedit dikecualikan
+
     if (form.nama.trim().length < 2 || form.nama.trim().length > 100) {
       e.nama = "Nama harus 2-100 karakter";
+    } else if (lain.some((u) => normal(u.nama) === normal(form.nama))) {
+      e.nama = "Nama sudah dipakai user lain";
     }
 
     if (!form.email.trim()) {
@@ -77,6 +84,8 @@ export default function UserForm({ initialData, existingUsers, onSubmit, onClose
     // telepon boleh kosong, kalau diisi 10-15 digit angka
     if (form.telepon && !/^\d{10,15}$/.test(form.telepon)) {
       e.telepon = "Telepon harus 10-15 digit angka";
+    } else if (form.telepon && lain.some((u) => u.telepon === form.telepon)) {
+      e.telepon = "Nomor telepon sudah dipakai user lain";
     }
 
     // Langkah 4.1: password hanya dicek saat tambah, saat edit diganti lewat dialog sendiri

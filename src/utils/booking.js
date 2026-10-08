@@ -1,5 +1,5 @@
 // src/utils/booking.js
-// Langkah 3: fungsi bantu yang dipakai banyak komponen booking
+// fungsi bantu yang dipakai banyak komponen booking
 
 export const formatRupiah = (n) => `Rp ${Number(n).toLocaleString("id-ID")}`;
 
@@ -12,7 +12,7 @@ export const formatDurasi = (menit) => {
   return `${jam} jam ${sisa} menit`;
 };
 
-// Langkah 3.1: tanggal lokal format YYYY-MM-DD
+// Langkah 4.1: tanggal lokal format YYYY-MM-DD
 // (toISOString memakai UTC, bisa mundur sehari di pagi hari WIB)
 const dua = (n) => String(n).padStart(2, "0");
 export const toISO = (d) => `${d.getFullYear()}-${dua(d.getMonth() + 1)}-${dua(d.getDate())}`;
@@ -37,7 +37,7 @@ export const formatTanggalPanjang = (tanggal) =>
     year: "numeric",
   });
 
-// Langkah 3.2: jam yang sudah lewat (atau kurang dari 1 jam lagi) pada hari ini
+// Langkah 4.2: jam yang sudah lewat (atau kurang dari 1 jam lagi) pada hari ini
 export const slotTerlewat = (tanggal, jam) => {
   if (!tanggal || !jam || tanggal !== hariIni()) return false;
   const [h, m] = jam.split(":").map(Number);
@@ -45,15 +45,16 @@ export const slotTerlewat = (tanggal, jam) => {
   return h * 60 + m < sekarang.getHours() * 60 + sekarang.getMinutes() + 60;
 };
 
-// Langkah 3.3: items = [{ layanan: objek layanan atau undefined }]
+// Langkah 4.3: items = [{ layanan: objek layanan atau undefined }]
 export const hitungTotal = (items) => items.reduce((j, it) => j + (it.layanan ? it.layanan.harga : 0), 0);
 export const hitungDurasi = (items) => items.reduce((j, it) => j + (it.layanan ? it.layanan.durasi : 0), 0);
 
-// Langkah 3.4: kelas input bersama, border merah jika error
+// Langkah 4.4: nama merek yang dipakai di review dan data booking,
+// kalau memilih "Lainnya" yang dipakai adalah tulisan pengguna
+export const namaMerek = (u) => (u.merek === "Lainnya" ? u.merekLain.trim() : u.merek);
+
+// Langkah 4.5: kelas input bersama, border merah jika error
 export const inputClass = (error) =>
   `w-full rounded-lg border bg-white px-3 py-2.5 text-sm text-slate-900 focus:border-secondary focus:outline-none focus:ring-2 focus:ring-accent/40 ${
     error ? "border-red-500" : "border-soft"
   }`;
-
-// kalau memilih "Lainnya" yang dipakai adalah tulisan pengguna
-export const namaMerek = (u) => (u.merek === "Lainnya" ? u.merekLain.trim() : u.merek);

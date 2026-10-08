@@ -74,11 +74,12 @@ export default function StepSuccess({ hasil, onReset }) {
       <div className="mx-auto flex max-w-md flex-col gap-3 sm:flex-row">
         {/* Langkah 11.2: tombol pertama ke dashboard admin */}
         <Link
-          to="/dashboard"
+          to="/booking"
           className="w-full rounded-lg bg-primary px-5 py-2.5 text-sm font-bold text-white hover:bg-secondary"
         >
-          Ke Dashboard
+          Ke Daftar Booking
         </Link>
+
         <button
           type="button"
           onClick={onReset}
@@ -87,10 +88,6 @@ export default function StepSuccess({ hasil, onReset }) {
           Buat Booking Baru
         </button>
       </div>
-
-      <p className="mt-4 text-xs text-slate-400">
-        Data belum tersimpan ke database dan belum muncul di tabel dashboard (masih data dummy).
-      </p>
     </div>
   );
 }

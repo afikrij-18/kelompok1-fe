@@ -1,7 +1,7 @@
-// src/components/layanan/ConfirmDeleteLayanan.jsx
+// src/components/layanan/ConfirmDeleteKategori.jsx
 import { AlertTriangle } from "lucide-react";
 
-export default function ConfirmDeleteLayanan({ item, loading = false, onConfirm, onClose }) {
+export default function ConfirmDeleteKategori({ item, loading = false, onConfirm, onClose }) {
   return (
     // area gelap tidak menutup dialog, hanya tombol Batal
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
@@ -10,11 +10,11 @@ export default function ConfirmDeleteLayanan({ item, loading = false, onConfirm,
           <AlertTriangle className="text-red-600" size={24} />
         </div>
 
-        <h2 className="text-lg font-semibold">Hapus Layanan?</h2>
+        <h2 className="text-lg font-semibold">Hapus Kategori?</h2>
 
         <p className="mt-2 text-sm text-gray-500">
-          Layanan <span className="font-semibold text-gray-800">{item.nama}</span> ({item.kategori}, Rp{" "}
-          {item.harga.toLocaleString("id-ID")}) akan dihapus permanen dan tidak bisa dikembalikan.
+          Kategori <span className="font-semibold text-gray-800">{item.nama}</span> akan dihapus
+          permanen dan tidak bisa dikembalikan.
         </p>
 
         <div className="mt-5 flex justify-center gap-2">
