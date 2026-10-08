@@ -156,20 +156,6 @@ export default function Footer() {
               Syarat & Ketentuan
             </a>
           </div>
-
-          <div>
-            <span>Area Petugas: </span>
-
-            <button
-              type="button"
-              onClick={() =>
-                window.location.href = "/login"
-              }
-              className="font-medium underline hover:text-[#2c5ead]"
-            >
-              Login Admin
-            </button>
-          </div>
         </div>
       </div>
     </footer>
