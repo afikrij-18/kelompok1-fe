@@ -8,6 +8,8 @@ import Dashboard from "./pages/Dashboard";
 import BookingList from "./pages/BookingList";
 import Booking from "./pages/Booking";
 import JadwalDispatch from "./pages/JadwalDispatch";
+import BookingDetail from "./pages/BookingDetail";
+import BookingEdit from "./pages/BookingEdit";
 import LayananManagement from "./pages/LayananManagement";
 import UserManagement from "./pages/UserManagement";
 import UangKeluar from "./pages/UangKeluar";
@@ -31,6 +33,8 @@ function App() {
               <Route path="/booking" element={<BookingList />} />
               <Route path="/booking/baru" element={<Booking />} />
               <Route path="/jadwal" element={<JadwalDispatch />} />
+              <Route path="/booking/:id" element={<BookingDetail />} />
+              <Route path="/booking/edit/:id" element={<BookingEdit />} />
               <Route path="/layanan" element={<LayananManagement />} />
               <Route path="/users" element={<UserManagement />} />
               <Route path="/uang-keluar" element={<UangKeluar />} />

@@ -1,7 +1,6 @@
 // src/components/booking/StepCustomer.jsx
 // Langkah 4: langkah 1, data pelanggan. Urutan: nomor HP, nama, alamat (pilih tersimpan atau baru)
-import { User, Smartphone, MapPin, ShieldCheck, Layers, ArrowRight, AlertTriangle, CheckCircle2 } from "lucide-react";
-import { JAMINAN, MAKS_UNIT } from "../../data/bookingOptions";
+import { User, Smartphone, MapPin, ShieldCheck, ArrowRight, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { inputClass } from "../../utils/booking";
 
 // Langkah 4.1: satu baris field, label + ikon + pesan error atau petunjuk
@@ -50,6 +49,7 @@ function PilihanAlamat({ aktif, onPilih, judul, children }) {
 // dikenal      = pelanggan terdaftar dengan nomor yang diisi (atau undefined), punya alamatList
 // onPilihAlamat = pilih alamat tersimpan (id) atau alamat baru ("")
 // peringatan   = daftar teks dari cekPelanggan
+// hideNavigation = sembunyikan tombol langkah sendiri jika dirangkai dalam step 1 gabungan
 export default function StepCustomer({
   data,
   errors,
@@ -59,14 +59,14 @@ export default function StepCustomer({
   peringatan = [],
   dikenal,
   onPilihAlamat,
+  hideNavigation = false,
 }) {
   // Langkah 4.4: ada alamat tersimpan, dan apakah sedang mengisi alamat baru
   const punyaAlamat = Boolean(dikenal && dikenal.alamatList.length > 0);
   const alamatBaru = !punyaAlamat || data.addressId === "";
 
   return (
-    <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-12">
-      <div className="rounded-xl border border-soft bg-white p-6 shadow-sm lg:col-span-8">
+    <div className="rounded-xl border border-soft bg-white p-6 shadow-sm">
         <div className="flex items-center gap-3">
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-soft font-bold text-primary">1</span>
           <div>
@@ -210,44 +210,19 @@ export default function StepCustomer({
           </div>
         </div>
 
-        <div className="mt-8 flex items-center justify-between border-t border-soft pt-4">
-          <span className="text-xs text-slate-400">Langkah 1 dari 4</span>
-          <button
-            type="button"
-            onClick={onNext}
-            className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-bold text-white hover:bg-secondary"
-          >
-            {labelNext || "Lanjutkan ke Unit AC"}
-            <ArrowRight size={18} />
-          </button>
-        </div>
+        {!hideNavigation && (
+          <div className="mt-8 flex items-center justify-between border-t border-soft pt-4">
+            <span className="text-xs text-slate-400">Langkah 1 dari 4</span>
+            <button
+              type="button"
+              onClick={onNext}
+              className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-bold text-white hover:bg-secondary"
+            >
+              {labelNext || "Lanjutkan ke Unit AC"}
+              <ArrowRight size={18} />
+            </button>
+          </div>
+        )}
       </div>
-
-      {/* Langkah 4.9: kartu samping */}
-      <div className="space-y-4 lg:col-span-4">
-        <div className="rounded-xl border border-soft bg-soft/30 p-4">
-          <h3 className="mb-3 flex items-center gap-2 text-sm font-bold text-slate-900">
-            <ShieldCheck size={18} className="text-primary" />
-            Jaminan Layanan
-          </h3>
-          <ul className="space-y-2 text-xs text-slate-600">
-            {JAMINAN.map((j) => (
-              <li key={j} className="flex items-start gap-2">
-                <ShieldCheck size={16} className="mt-0.5 shrink-0 text-primary" />
-                <span>{j}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 text-center">
-          <Layers size={28} className="mx-auto mb-1 text-primary" />
-          <p className="text-sm font-bold text-slate-900">Booking Multi-Unit</p>
-          <p className="mt-1 text-xs text-slate-600">
-            Pelanggan punya lebih dari 1 AC? Daftarkan sampai {MAKS_UNIT} unit sekaligus pada langkah berikutnya.
-          </p>
-        </div>
-      </div>
-    </div>
   );
 }

@@ -2,7 +2,7 @@
 // Langkah 7: daftar booking dengan cari, filter status, ubah status, dan hapus
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Plus, Search, Trash2 } from "lucide-react";
+import { Plus, Search, Trash2, Eye, Pencil } from "lucide-react";
 import { getBookings, updateBookingStatus, deleteBooking } from "../services/bookingService";
 import { STATUS_OPSI } from "../services/bookingMapper";
 import ConfirmDeleteBooking from "../components/booking/ConfirmDeleteBooking";
@@ -135,7 +135,7 @@ export default function BookingList() {
               <table className="w-full text-left text-sm">
                 <thead className="bg-soft text-primary">
                   <tr>
-                    {["No Registrasi", "Pelanggan", "Layanan AC", "Jadwal", "Total", "Status", "Aksi"].map((h) => (
+                    {["No Registrasi", "Pelanggan", "Layanan AC", "Jadwal", "Total", "Pembayaran", "Status", "Aksi"].map((h) => (
                       <th key={h} className="px-3 py-2">{h}</th>
                     ))}
                   </tr>
@@ -163,6 +163,11 @@ export default function BookingList() {
                       <td className="px-3 py-2">{b.jadwal}</td>
                       <td className="px-3 py-2">Rp {b.total.toLocaleString("id-ID")}</td>
                       <td className="px-3 py-2">
+                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${b.paid ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+                          {b.paid ? "Lunas" : "Belum"}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2">
                         <select
                           value={b.status}
                           disabled={updatingId === b.id}
@@ -177,22 +182,38 @@ export default function BookingList() {
                         </select>
                       </td>
                       <td className="px-3 py-2">
-                        <button
-                          onClick={() => {
-                            setPesan(null);
-                            setDeletingItem(b);
-                          }}
-                          title="Hapus"
-                          className="rounded p-1.5 text-red-600 hover:bg-red-50"
-                        >
-                          <Trash2 size={16} />
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <Link
+                            to={`/booking/${b.id}`}
+                            title="Detail"
+                            className="rounded p-1.5 text-primary hover:bg-soft"
+                          >
+                            <Eye size={16} />
+                          </Link>
+                          <Link
+                            to={`/booking/edit/${b.id}`}
+                            title="Edit"
+                            className="rounded p-1.5 text-amber-600 hover:bg-amber-50"
+                          >
+                            <Pencil size={16} />
+                          </Link>
+                          <button
+                            onClick={() => {
+                              setPesan(null);
+                              setDeletingItem(b);
+                            }}
+                            title="Hapus"
+                            className="rounded p-1.5 text-red-600 hover:bg-red-50"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
                   {rows.length === 0 && (
                     <tr>
-                      <td colSpan={7} className="py-6 text-center text-gray-500">Booking tidak ditemukan</td>
+                      <td colSpan={8} className="py-6 text-center text-gray-500">Booking tidak ditemukan</td>
                     </tr>
                   )}
                 </tbody>

@@ -1,27 +1,25 @@
 // src/components/booking/StepSuccess.jsx
-// Langkah 11: langkah 5, booking berhasil dibuat
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { CheckCircle2, Copy, Check } from "lucide-react";
-import { BIAYA_KUNJUNGAN } from "../../data/bookingOptions";
+import { CheckCircle2, Copy, Check, CreditCard, User, Calendar, Wrench, MapPin } from "lucide-react";
+import { BIAYA_KUNJUNGAN, BANK_OPTIONS } from "../../data/bookingOptions";
 import { formatRupiah } from "../../utils/booking";
 
 export default function StepSuccess({ hasil, onReset }) {
   const [tersalin, setTersalin] = useState(false);
 
-  // Langkah 11.1: salin kode ke clipboard, gagal diabaikan (mis. izin ditolak)
-  const salin = async () => {
+  const salin = async (teks) => {
     try {
-      await navigator.clipboard.writeText(hasil.id);
+      await navigator.clipboard.writeText(teks);
       setTersalin(true);
       setTimeout(() => setTersalin(false), 2500);
     } catch {
-      /* tidak ada tindakan */
+      /* abaikan */
     }
   };
 
   const total = hasil.items.reduce((j, it) => j + it.harga, 0) + BIAYA_KUNJUNGAN;
-  const layananUnik = [...new Set(hasil.items.map((it) => it.layanan))].join(", ");
+  const bankTerpilih = BANK_OPTIONS.find((b) => b.value === hasil.bank);
 
   return (
     <div className="mx-auto max-w-3xl rounded-2xl border border-secondary/30 bg-white p-8 text-center shadow-xl">
@@ -31,16 +29,17 @@ export default function StepSuccess({ hasil, onReset }) {
 
       <h2 className="text-2xl font-bold tracking-tight text-slate-900">BOOKING BERHASIL DIBUAT!</h2>
       <p className="mx-auto mt-2 max-w-lg text-sm text-slate-600">
-        Booking sudah tercatat dengan status Menunggu. Tugaskan teknisi melalui menu Jadwal & Dispatch.
+        Pesanan booking servis AC telah tercatat di dalam sistem dengan status <strong>{hasil.status}</strong>.
       </p>
 
+      {/* Box No Registrasi */}
       <div className="mx-auto my-6 max-w-lg rounded-xl border border-primary/20 bg-soft/30 p-5">
         <span className="text-[11px] font-bold uppercase tracking-widest text-slate-500">Nomor Registrasi</span>
         <div className="my-2 flex items-center justify-center gap-3">
           <span className="font-mono text-3xl font-bold tracking-wider text-primary">{hasil.id}</span>
           <button
             type="button"
-            onClick={salin}
+            onClick={() => salin(hasil.id)}
             title="Salin kode"
             className="flex h-9 w-9 items-center justify-center rounded-lg border border-soft bg-white text-primary hover:bg-soft"
           >
@@ -52,27 +51,95 @@ export default function StepSuccess({ hasil, onReset }) {
         </p>
       </div>
 
-      <div className="mx-auto mb-6 max-w-lg space-y-2 rounded-xl border border-soft p-4 text-left text-xs text-slate-600">
-        <div className="flex justify-between gap-3 border-b border-soft pb-2">
-          <span>Nama Pemesan:</span>
-          <strong className="text-right text-slate-900">{hasil.pelanggan} ({hasil.telepon})</strong>
+      {/* Info Transfer Bank jika metode Transfer */}
+      {hasil.metodePembayaran === "transfer" && bankTerpilih && (
+        <div className="mx-auto mb-6 max-w-lg rounded-xl border border-secondary/40 bg-secondary/5 p-4 text-left">
+          <div className="flex items-center gap-2 text-sm font-bold text-slate-900">
+            <CreditCard size={18} className="text-secondary" />
+            <span>Instruksi Transfer Bank ({bankTerpilih.nama})</span>
+          </div>
+          <div className="mt-3 flex items-center justify-between rounded-lg border border-soft bg-white p-3">
+            <div>
+              <p className="text-xs text-slate-500">Nomor Rekening & Atas Nama</p>
+              <p className="text-sm font-mono font-bold text-slate-900">{bankTerpilih.rekening}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => salin(bankTerpilih.rekening)}
+              className="rounded-lg border border-soft px-3 py-1 text-xs font-bold text-primary hover:bg-soft"
+            >
+              Salin Rekening
+            </button>
+          </div>
+          <p className="mt-2 text-xs text-slate-500">
+            Silakan lakukan transfer sebesar <strong>{formatRupiah(total)}</strong>. Konfirmasi transfer dapat ditunjukkan ke teknisi saat kedatangan.
+          </p>
         </div>
-        <div className="flex justify-between gap-3 border-b border-soft pb-2">
-          <span>Jadwal Kedatangan:</span>
-          <strong className="text-right text-slate-900">{hasil.jadwal} WIB</strong>
+      )}
+
+      {/* Rincian Detail Booking */}
+      <div className="mx-auto mb-6 max-w-lg space-y-3 rounded-xl border border-soft p-5 text-left text-xs text-slate-600">
+        <h3 className="font-bold uppercase tracking-wider text-slate-800">Detail Booking Servis AC</h3>
+
+        <div className="flex items-start gap-2 border-b border-soft pb-2">
+          <User size={16} className="mt-0.5 text-primary shrink-0" />
+          <div className="flex-1 flex justify-between">
+            <span>Pelanggan:</span>
+            <strong className="text-right text-slate-900">{hasil.pelanggan} ({hasil.telepon})</strong>
+          </div>
         </div>
-        <div className="flex justify-between gap-3 border-b border-soft pb-2">
-          <span>Unit Dilayani:</span>
-          <strong className="text-right text-slate-900">{hasil.items.length} Unit AC ({layananUnik})</strong>
+
+        <div className="flex items-start gap-2 border-b border-soft pb-2">
+          <MapPin size={16} className="mt-0.5 text-primary shrink-0" />
+          <div className="flex-1 flex justify-between">
+            <span>Alamat:</span>
+            <span className="text-right font-medium text-slate-900 max-w-[260px] truncate">{hasil.alamat}</span>
+          </div>
         </div>
-        <div className="flex justify-between gap-3 pt-1">
-          <span>Total Estimasi Biaya:</span>
-          <strong className="text-base text-primary">{formatRupiah(total)}</strong>
+
+        <div className="flex items-start gap-2 border-b border-soft pb-2">
+          <Calendar size={16} className="mt-0.5 text-primary shrink-0" />
+          <div className="flex-1 flex justify-between">
+            <span>Jadwal Kedatangan:</span>
+            <strong className="text-right text-slate-900">{hasil.jadwal} WIB</strong>
+          </div>
+        </div>
+
+        <div className="flex items-start gap-2 border-b border-soft pb-2">
+          <Wrench size={16} className="mt-0.5 text-primary shrink-0" />
+          <div className="flex-1 flex justify-between">
+            <span>Teknisi Ditugaskan:</span>
+            <strong className="text-right text-primary">{hasil.teknisi || "Belum Ditugaskan"}</strong>
+          </div>
+        </div>
+
+        <div className="border-b border-soft pb-2">
+          <p className="font-bold text-slate-800 mb-1">Daftar Unit AC ({hasil.items.length} Unit):</p>
+          <ul className="space-y-1 pl-2">
+            {hasil.items.map((it, idx) => (
+              <li key={idx} className="flex justify-between text-slate-700">
+                <span>Unit #{idx + 1} ({it.unit}) - {it.layanan}</span>
+                <span className="font-bold">{formatRupiah(it.harga)}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="flex justify-between items-center pt-1 text-sm">
+          <span className="font-bold text-slate-800">Total Pembayaran:</span>
+          <strong className="text-lg text-primary">{formatRupiah(total)}</strong>
+        </div>
+
+        <div className="flex justify-between items-center text-[11px] text-slate-500">
+          <span>Metode Pembayaran:</span>
+          <span className="font-semibold uppercase text-slate-800">
+            {hasil.metodePembayaran === "transfer" ? `Transfer (${bankTerpilih?.nama || "Bank"})` : "Tunai / Cash"}
+          </span>
         </div>
       </div>
 
+      {/* Tombol Navigasi */}
       <div className="mx-auto flex max-w-md flex-col gap-3 sm:flex-row">
-        {/* Langkah 11.2: tombol pertama ke dashboard admin */}
         <Link
           to="/booking"
           className="w-full rounded-lg bg-primary px-5 py-2.5 text-sm font-bold text-white hover:bg-secondary"
