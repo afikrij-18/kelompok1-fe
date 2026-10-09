@@ -33,6 +33,26 @@ export const fromApi = (b) => {
     jadwal: formatJadwal(b.booking_date, jam),
     status: STATUS[b.status] || b.status,
     total: b.total_price,
+    totalDibayar: (b.transactions || [])
+      .filter((t) => t.payment_status === "paid")
+      .reduce((j, t) => j + Number(t.amount_paid || 0), 0),
+    // Lunas kalau total yang sudah dibayar menutupi total tagihan.
+    // Kalau tambah layanan tapi tambahannya belum dibayar -> kembali Belum.
+    paid:
+      Number(b.total_price || 0) > 0 &&
+      (b.transactions || [])
+        .filter((t) => t.payment_status === "paid")
+        .reduce((j, t) => j + Number(t.amount_paid || 0), 0) >= Number(b.total_price || 0),
+    teknisiId: b.technician_id || b.technician?.id || "",
+    transaksi: (b.transactions || []).map(t => ({
+      id: t.id,
+      invoice: t.invoice_no,
+      metode: t.payment_method,
+      jumlah: t.amount_paid,
+      status: t.payment_status,
+      tanggal: t.payment_date,
+      catatan: t.notes || "",
+    })),
     items: (b.units || []).map((u) => ({
       id: u.id,
       unit: u.lokasi,

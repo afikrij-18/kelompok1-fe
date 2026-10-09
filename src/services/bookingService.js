@@ -10,9 +10,22 @@ export async function getBookings() {
   return body.data.map(fromApi);
 }
 
+export async function getBookingById(id) {
+  const body = await apiFetch(`${PATH}/${id}`);
+  return fromApi(body.data);
+}
+
 export async function createBooking(payload) {
   const body = await apiFetch(PATH, {
     method: "POST",
+    body: JSON.stringify(toApi(payload)),
+  });
+  return fromApi(body.data);
+}
+
+export async function updateBooking(id, payload) {
+  const body = await apiFetch(`${PATH}/${id}`, {
+    method: "PUT",
     body: JSON.stringify(toApi(payload)),
   });
   return fromApi(body.data);

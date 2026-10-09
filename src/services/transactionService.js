@@ -11,15 +11,18 @@ export async function getSalesReport({ from, to } = {}) {
     query.set("to", to);
   }
   const qs = query.toString();
-
   const body = await apiFetch(`/transactions/report${qs ? `?${qs}` : ""}`);
-
   return {
     totalOmzet: body.total_revenue || 0,
     totalTransaksi: body.total_transactions || 0,
     perMetode: body.summary_by_method || {},
     transaksi: (body.data || []).map(fromApi),
   };
+}
+
+export async function getTransactions() {
+  const body = await apiFetch("/transactions");
+  return (body.data || []).map(fromApi);
 }
 
 // Langkah 2.2: catat pembayaran lunas untuk satu booking
