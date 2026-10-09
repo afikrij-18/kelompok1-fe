@@ -7,7 +7,7 @@ import { formatRupiah, hitungTotal } from "../../utils/booking";
 
 // items = unit yang sudah digabung dengan objek layanan terpilih
 // tombol aksi dirender oleh parent lewat prop `action`
-export default function BookingSummary({ items, action }) {
+export default function BookingSummary({ items, action, sudahDibayar = 0 }) {
   const total = hitungTotal(items) + BIAYA_KUNJUNGAN;
   const sisa = Math.max(0, total - sudahDibayar);
   const lunasSemua = sisa === 0 && sudahDibayar > 0;

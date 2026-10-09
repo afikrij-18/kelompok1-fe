@@ -528,29 +528,30 @@ export default function Booking() {
               )}
 
               {step === 2 && (
-                <StepReview
-                  customer={{
-                    ...customer,
-                    telepon: teleponBersih,
-                    alamat: alamatTerpilih,
-                  }}
-                  ringkasan={ringkasan}
-                  jadwal={jadwal}
-                  teknisi={teknisiTerpilih}
-                  teknisiList={teknisiList}
-                  bayar={bayar}
-                  onBayarChange={setBayar}
-                  setuju={setuju}
-                  errors={errors}
-                  submitting={submitting}
-                  onSetuju={(v) => {
-                    setSetuju(v);
-                    setErrors({});
-                  }}
-                  onGo={lompat}
-                  onBack={kembali}
-                  onSubmit={kirim}
-                />
+                  <StepReview
+                    customer={{
+                      ...customer,
+                      telepon: teleponBersih,
+                      alamat: alamatTerpilih,
+                    }}
+                    ringkasan={ringkasan}
+                    jadwal={jadwal}
+                    teknisi={teknisiTerpilih}
+                    teknisiList={teknisiList}
+                    bayar={bayar}
+                    onBayarChange={setBayar}
+                    setuju={setuju}
+                    errors={errors}
+                    submitting={submitting}
+                    onSetuju={(v) => {
+                      setSetuju(v);
+                      setErrors({});
+                    }}
+                    onGo={lompat}
+                    onBack={kembali}
+                    onSubmit={kirim}
+                    sudahDibayar={0}
+                  />
               )}
 
               {step === 3 && hasil && (
@@ -560,7 +561,7 @@ export default function Booking() {
 
             {/* Bagian Kanan: Estimasi Pembayaran Samping (Sticky) */}
             <aside className="lg:sticky lg:top-6 lg:col-span-4">
-              <BookingSummary items={ringkasan} />
+              <BookingSummary items={ringkasan} sudahDibayar={0} />
             </aside>
           </div>
         </div>
