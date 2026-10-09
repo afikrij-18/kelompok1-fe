@@ -1,4 +1,5 @@
 // src/pages/UserManagement.jsx
+// Langkah 4: halaman user, aturan "tidak bisa jadi Teknisi" dihapus
 import { useEffect, useState } from "react";
 import UserTable from "../components/user/UserTable";
 import UserForm from "../components/user/UserForm";
@@ -28,7 +29,7 @@ export default function UserManagement() {
   const [editingUser, setEditingUser] = useState(null);
   const [deletingUser, setDeletingUser] = useState(null);
   const [deleting, setDeleting] = useState(false);
-  // Langkah 6.1: user yang password-nya sedang diganti (null = dialog tertutup)
+  // user yang password-nya sedang diganti (null = dialog tertutup)
   const [passwordUser, setPasswordUser] = useState(null);
   const [pesan, setPesan] = useState(null); // { tipe: "sukses" | "error", teks }
 
@@ -85,13 +86,10 @@ export default function UserManagement() {
 
   // simpan ke API, error dilempar kembali agar tampil di dalam form
   const handleSubmit = async (data) => {
-    // backend tidak mencegah ini, jadi dijaga di frontend
+    // Langkah 4.1: backend tidak mencegah menonaktifkan akun sendiri, jadi dijaga di frontend
     const akunSendiri = editingUser && me && editingUser.id === me.id;
     if (akunSendiri && data.status === "Nonaktif") {
       throw new Error("Akun yang sedang dipakai login tidak bisa dinonaktifkan.");
-    }
-    if (akunSendiri && data.role === "Teknisi") {
-      throw new Error("Akun yang sedang dipakai login tidak bisa diubah menjadi Teknisi, karena Teknisi tidak bisa login.");
     }
 
     if (editingUser) {
@@ -106,7 +104,7 @@ export default function UserManagement() {
     handleClose();
   };
 
-  // Langkah 6.2: simpan password baru lewat PUT /users/:id/password
+  // simpan password baru lewat PUT /users/:id/password
   // error dilempar kembali agar tampil di dalam dialog
   const handleSubmitPassword = async (passwordBaru) => {
     await updateUserPassword(passwordUser.id, passwordBaru);

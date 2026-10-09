@@ -1,29 +1,51 @@
 // src/pages/Booking.jsx
-// Halaman form booking di /booking/baru (di dalam layout admin)
-// 3 Langkah: 1. Booking (Form terpadu), 2. Review & Pembayaran, 3. Selesai
+// Langkah 4: form booking admin, dengan pilihan pembayaran lunas di langkah review
 import { useEffect, useRef, useState } from "react";
 import { ArrowRight, Loader2 } from "lucide-react";
 import StepIndicator from "../components/booking/StepIndicator";
 import FormBooking from "../components/booking/FormBooking";
 import StepReview from "../components/booking/StepReview";
 import StepSuccess from "../components/booking/StepSuccess";
-import BookingSummary from "../components/booking/BookingSummary";
-
-import { layanan as layananFallback } from "../data/layananDummy";
-import { users as usersFallback } from "../data/userDummy";
-import { bookings } from "../data/dummy";
-import { MAKS_UNIT } from "../data/bookingOptions";
-import { formatJadwal, slotTerlewat, namaMerek } from "../utils/booking";
-
+import PembayaranSection from "../components/booking/PembayaranSection";
 import { getServices } from "../services/serviceService";
-import { getUsers } from "../services/userService";
-import { getCustomers, createBooking } from "../services/bookingService";
+import { createBooking, getCustomers, updateBookingStatus } from "../services/bookingService";
+import { createTransaction } from "../services/transactionService";
+import { METODE } from "../services/transactionMapper";
+import { MAKS_UNIT } from "../data/bookingOptions";
+import {
+  formatJadwal,
+  formatRupiah,
+  slotTerlewat,
+  hitungDurasi,
+  hitungTotal,
+  namaMerek,
+} from "../utils/booking";
+import { cekPelanggan, cariPelanggan } from "../utils/pelanggan";
 
-const customerKosong = { nama: "", telepon: "", alamat: "" };
+// addressId "" = alamat baru, selain itu id alamat tersimpan milik pelanggan
+const customerKosong = {
+  nama: "",
+  telepon: "",
+  addressId: "",
+  alamat: "",
+  labelAlamat: "",
+  catatanLokasi: "",
+};
 const jadwalKosong = { tanggal: "", jam: "" };
+// Langkah 4.1: pembayaran awal, belum dibayar
+const bayarKosong = { status: "belum", metode: "cash", catatan: "" };
+
+// TypeError berarti fetch gagal terhubung (backend mati / alamat salah)
+const pesanError = (err) =>
+  err instanceof TypeError
+    ? "Tidak dapat terhubung ke server. Pastikan backend sudah berjalan."
+    : err.message;
 
 export default function Booking() {
   const [step, setStep] = useState(1);
+
+  // langkah tertinggi yang pernah dicapai (maks 4 = review)
+  // sudahSampaiReview true berarti tombol Lanjutkan langsung kembali ke review
   const [maxStep, setMaxStep] = useState(1);
 
   // Data dinamis dari API / fallback dummy
@@ -36,11 +58,7 @@ export default function Booking() {
   // State Formulir Booking
   const [customer, setCustomer] = useState(customerKosong);
   const [jadwal, setJadwal] = useState(jadwalKosong);
-  const [teknisi, setTeknisi] = useState("");
-
-  // State Review & Pembayaran
-  const [metodePembayaran, setMetodePembayaran] = useState("tunai");
-  const [bank, setBank] = useState("");
+  const [bayar, setBayar] = useState(bayarKosong);
   const [setuju, setSetuju] = useState(false);
 
   // Status submission & error
@@ -48,7 +66,31 @@ export default function Booking() {
   const [submitting, setSubmitting] = useState(false);
   const [hasil, setHasil] = useState(null);
 
-  // Ref & Unit AC
+  // data dari API
+  const [layananList, setLayananList] = useState([]);
+  const [pelangganList, setPelangganList] = useState([]);
+  const [gagalLayanan, setGagalLayanan] = useState("");
+  const [gagalKirim, setGagalKirim] = useState("");
+  // Langkah 4.2: hasil pencatatan pembayaran { tipe: "sukses" | "peringatan", teks }
+  const [infoBayar, setInfoBayar] = useState(null);
+
+  // nama yang terakhir diisi otomatis dari nomor HP,
+  // dipakai agar nama yang diketik sendiri tidak tertimpa
+  const namaOtomatis = useRef("");
+
+  // ---------- muat data dari API ----------
+  useEffect(() => {
+    getServices()
+      .then(setLayananList)
+      .catch((err) => setGagalLayanan(pesanError(err)));
+  }, []);
+
+  useEffect(() => {
+    // gagal dimuat diabaikan, data pelanggan hanya tambahan
+    getCustomers().then(setPelangganList).catch(() => {});
+  }, []);
+
+  // ---------- unit AC ----------
   const uidRef = useRef(1);
   const unitBaru = () => ({
     uid: uidRef.current++,
@@ -62,59 +104,73 @@ export default function Booking() {
   });
   const [units, setUnits] = useState(() => [unitBaru()]);
 
-  // Scroll to top saat langkah berganti
+  // yang di-scroll adalah area kanan layout, jadi pakai scrollIntoView
   const topRef = useRef(null);
   useEffect(() => {
     topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [step]);
 
-  // Muat data pendukung (layanan, teknisi, daftar riwayat pelanggan)
-  useEffect(() => {
-    getServices()
-      .then((data) => {
-        if (data && data.length > 0) setLayananList(data);
-      })
-      .catch(() => {});
-
-    getUsers()
-      .then((users) => {
-        const hanyaTeknisi = users.filter((u) => u.role === "Teknisi" && u.status === "Aktif");
-        if (hanyaTeknisi.length > 0) setTeknisiList(hanyaTeknisi);
-      })
-      .catch(() => {});
-
-    getCustomers()
-      .then(setPelangganTerdaftar)
-      .catch(() => {});
-  }, []);
-
-  // Gabungkan unit dengan objek detail layanannya
   const ringkasan = units.map((u) => ({
     ...u,
     layanan: layananList.find((l) => String(l.id) === String(u.layananId)),
   }));
 
-  // Peringatan jika nomor hp/nama pelanggan sudah pernah booking
-  const peringatanPelanggan = [];
-  if (customer.telepon) {
-    const cocok = pelangganTerdaftar.find((p) => p.telepon === customer.telepon.trim());
-    if (cocok) {
-      peringatanPelanggan.push(
-        `Nomor telepon ini sebelumnya pernah digunakan atas nama "${cocok.nama}".`
-      );
-    }
-  }
+  // nomor HP tanpa spasi dan strip, harus dibuat sebelum dikenal, peringatan, dan validasi
+  const teleponBersih = customer.telepon.replace(/[\s-]/g, "");
 
+  // pelanggan terdaftar, peringatannya, dan teks alamat yang dipakai booking
+  const dikenal = cariPelanggan(teleponBersih, pelangganList);
+  const peringatan = cekPelanggan(customer, teleponBersih, pelangganList);
+  const alamatTerpilih = customer.addressId
+    ? dikenal?.alamatList.find((a) => String(a.id) === String(customer.addressId))?.alamat || ""
+    : customer.alamat.trim();
+
+  // semua perpindahan langkah lewat sini agar maxStep ikut tercatat
   const pindah = (n) => {
     setStep(n);
     setMaxStep((m) => Math.max(m, Math.min(n, 2)));
   };
 
-  // ---------- Input Handlers ----------
+  // ---------- handler input ----------
+  // nomor HP lengkap yang terdaftar mengisi nama otomatis dan memilih alamat terbaru.
+  // Nama yang sudah diketik sendiri tidak ditimpa
   const handleCustomer = (e) => {
     const { name, value } = e.target;
-    setCustomer((prev) => ({ ...prev, [name]: value }));
-    setErrors((prev) => ({ ...prev, [name]: "" }));
+    const baru = { ...customer, [name]: value };
+    const galat = { ...errors, [name]: "" };
+
+    if (name === "telepon") {
+      const cocok = cariPelanggan(value.replace(/[\s-]/g, ""), pelangganList);
+      const bolehIsi = !customer.nama.trim() || customer.nama === namaOtomatis.current;
+
+      if (cocok && bolehIsi) {
+        baru.nama = cocok.nama;
+        namaOtomatis.current = cocok.nama;
+        galat.nama = "";
+      } else if (!cocok && namaOtomatis.current && customer.nama === namaOtomatis.current) {
+        // nomor diubah ke nomor yang tidak terdaftar, nama otomatis tadi dihapus
+        baru.nama = "";
+        namaOtomatis.current = "";
+      }
+
+      // alamat: pakai yang sudah dipilih jika milik pelanggan ini, kalau tidak pilih yang terbaru
+      if (cocok && cocok.alamatList.length > 0) {
+        const masihAda = cocok.alamatList.some((a) => String(a.id) === String(customer.addressId));
+        baru.addressId = masihAda ? customer.addressId : cocok.alamatList[0].id;
+      } else {
+        baru.addressId = "";
+      }
+      galat.alamat = "";
+    }
+
+    setCustomer(baru);
+    setErrors(galat);
+  };
+
+  // pilih alamat tersimpan (id) atau alamat baru ("")
+  const pilihAlamat = (id) => {
+    setCustomer((c) => ({ ...c, addressId: id }));
+    setErrors((e) => ({ ...e, alamat: "" }));
   };
 
   const handleUnit = (uid, field, value) => {
@@ -138,21 +194,18 @@ export default function Booking() {
     setErrors((prev) => ({ ...prev, tanggal: "" }));
   };
 
-  const handleJam = (jam) => {
-    setJadwal((prev) => ({ ...prev, jam }));
-    setErrors((prev) => ({ ...prev, jam: "" }));
-  };
-
-  // ---------- Validasi ----------
-  const teleponBersih = customer.telepon.replace(/[\s-]/g, "");
-
-  const validasiBooking = () => {
+  // ---------- validasi per langkah ----------
+  const validasi = (n) => {
     const e = {};
 
-    // 1. Pelanggan
-    if (customer.nama.trim().length < 2) e.nama = "Nama pelanggan minimal 2 karakter";
-    if (!/^\d{10,15}$/.test(teleponBersih)) e.telepon = "Nomor HP harus 10-15 digit angka";
-    if (customer.alamat.trim().length < 10) e.alamat = "Alamat terlalu singkat, tuliskan alamat lengkap & patokan";
+    if (n === 1) {
+      if (!/^\d{10,15}$/.test(teleponBersih)) e.telepon = "No. HP harus 10-15 digit angka";
+      if (customer.nama.trim().length < 2) e.nama = "Nama minimal 2 karakter";
+      // alamat tersimpan sudah pasti valid, alamat baru harus diisi lengkap
+      if (!customer.addressId && customer.alamat.trim().length < 10) {
+        e.alamat = "Alamat terlalu singkat, tulis lengkap beserta patokan";
+      }
+    }
 
     // 2. Unit AC
     const eu = {};
@@ -172,17 +225,12 @@ export default function Booking() {
     return e;
   };
 
-  const validasiReview = () => {
-    const e = {};
-    if (!metodePembayaran) e.metodePembayaran = "Pilih metode pembayaran";
-    if (metodePembayaran === "transfer" && !bank) e.bank = "Pilih bank tujuan transfer";
-    if (!setuju) e.setuju = "Centang persetujuan pelanggan untuk menyelesaikan pesanan";
-    return e;
-  };
-
-  // Navigasi langkah
-  const lanjutKeReview = () => {
-    const e = validasiBooking();
+  // ---------- navigasi ----------
+  // validasi langkah ini, lalu
+  // - belum pernah sampai review: lanjut ke langkah berikutnya
+  // - sudah pernah sampai review: kembali ke review, setelah semua langkah dicek ulang
+  const lanjut = () => {
+    const e = validasi(step);
     setErrors(e);
     if (Object.keys(e).length > 0) return;
     pindah(2);
@@ -193,25 +241,33 @@ export default function Booking() {
     pindah(1);
   };
 
-  // Kirim / Selesaikan Pesanan
-  const kirimBooking = async () => {
-    const e = validasiReview();
+  // dipakai tombol "Ubah" di review dan klik pada stepper
+  const lompat = (n) => {
+    setErrors({});
+    pindah(n);
+  };
+
+  // ---------- kirim ke API ----------
+  const kirim = async () => {
+    const e = validasi(4);
     setErrors(e);
     if (Object.keys(e).length > 0) return;
 
     setSubmitting(true);
+    setGagalKirim("");
+    setInfoBayar(null);
 
-    const kode = `REG-${String(bookings.length + 1).padStart(3, "0")}`;
+    // alamatId terisi = pakai alamat tersimpan, kosong = kirim alamat baru
     const payload = {
-      id: kode,
       pelanggan: customer.nama.trim(),
       telepon: teleponBersih,
-      alamat: customer.alamat.trim(),
-      jadwal: formatJadwal(jadwal.tanggal, jadwal.jam),
-      teknisi: teknisi || "Belum Ditugaskan",
-      status: "Menunggu",
-      metodePembayaran,
-      bank: metodePembayaran === "transfer" ? bank : null,
+      alamatId: customer.addressId,
+      alamat: alamatTerpilih,
+      labelAlamat: customer.labelAlamat.trim(),
+      catatanLokasi: customer.catatanLokasi.trim(),
+      jadwal: formatJadwal(jadwal.tanggal, jadwal.jam), // teks untuk halaman sukses
+      tanggal: jadwal.tanggal,
+      jam: jadwal.jam,
       items: ringkasan.map((u) => ({
         unit: u.lokasi.trim(),
         merek: namaMerek(u),
@@ -225,18 +281,49 @@ export default function Booking() {
     };
 
     try {
-      // Coba panggil createBooking API jika endpoint backend tersedia
-      let hasilBooking = null;
-      try {
-        hasilBooking = await createBooking(payload);
-      } catch {
-        // Fallback simpan lokal jika backend booking belum terhubung
-        hasilBooking = payload;
+      const dibuat = await createBooking(payload);
+
+      // Langkah 4.3: booking sudah tersimpan, lalu catat pembayaran jika dipilih lunas
+      let info = null;
+      if (bayar.status === "lunas") {
+        try {
+          await createTransaction({
+            bookingId: dibuat.id,
+            metode: bayar.metode,
+            jumlah: dibuat.total,
+            catatan: bayar.catatan.trim(),
+          });
+          info = {
+            tipe: "sukses",
+            teks: `Pembayaran lunas ${formatRupiah(dibuat.total)} (${METODE[bayar.metode]}) tercatat.`,
+          };
+
+          // Langkah 4.4: backend mengubah status booking menjadi Selesai saat pembayaran lunas dicatat,
+          // jadi statusnya dikembalikan ke Menunggu karena servis belum dikerjakan
+          try {
+            await updateBookingStatus(dibuat, "Menunggu");
+          } catch {
+            info = {
+              tipe: "peringatan",
+              teks: "Pembayaran tercatat, tetapi status booking berubah otomatis menjadi Selesai. Ubah kembali di menu Booking.",
+            };
+          }
+        } catch (err) {
+          // booking tetap aman, hanya pembayarannya yang belum tercatat
+          info = {
+            tipe: "peringatan",
+            teks: `Booking tersimpan, tetapi pembayaran gagal dicatat: ${pesanError(err)} Catat pembayarannya secara terpisah.`,
+          };
+        }
       }
-      setHasil({ ...payload, ...hasilBooking });
-      setStep(3);
+
+      setInfoBayar(info);
+      // nomor registrasi dari backend, sisanya dari form
+      setHasil({ ...payload, id: dibuat.kode });
+      setStep(5);
     } catch (err) {
-      setErrors({ server: err.message || "Gagal memproses booking" });
+      setGagalKirim(pesanError(err));
+      topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     } finally {
       setSubmitting(false);
     }
@@ -246,15 +333,21 @@ export default function Booking() {
     setCustomer(customerKosong);
     setUnits([unitBaru()]);
     setJadwal(jadwalKosong);
-    setTeknisi("");
-    setMetodePembayaran("tunai");
-    setBank("");
+    setBayar(bayarKosong);
     setSetuju(false);
     setErrors({});
     setHasil(null);
-    setMaxStep(1);
+    setGagalKirim("");
+    setInfoBayar(null);
+    setMaxStep(1); // booking baru mulai lagi dari alur biasa
     setStep(1);
+    namaOtomatis.current = "";
+    // muat ulang pelanggan supaya pelanggan dan alamat yang baru dibuat ikut terhitung
+    getCustomers().then(setPelangganList).catch(() => {});
   };
+
+  // teks tombol Lanjutkan, kosong = memakai teks bawaan tiap langkah
+  const labelNext = sudahSampaiReview ? "Simpan & Kembali ke Review" : undefined;
 
   return (
     <>
@@ -271,114 +364,93 @@ export default function Booking() {
             </p>
           </div>
 
-          <StepIndicator step={step} maxStep={maxStep} onJump={(s) => pindah(s)} />
+          {gagalLayanan && (
+            <p className="mb-4 rounded-lg bg-red-100 px-4 py-2 text-sm text-red-700">{gagalLayanan}</p>
+          )}
+
+          {gagalKirim && (
+            <p className="mb-4 rounded-lg bg-red-100 px-4 py-2 text-sm text-red-700">{gagalKirim}</p>
+          )}
+
+          {/* Langkah 4.5: hasil pencatatan pembayaran, tampil juga di halaman sukses */}
+          {infoBayar && (
+            <p
+              className={`mb-4 rounded-lg px-4 py-2 text-sm ${
+                infoBayar.tipe === "sukses" ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-800"
+              }`}
+            >
+              {infoBayar.teks}
+            </p>
+          )}
+
+          <StepIndicator step={step} maxStep={maxStep} onJump={lompat} />
 
           <div className="mt-6">
             {step === 1 && (
-              <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
-                {/* Kolom Kiri: Form Lengkap (Customer, Units, Jadwal, Teknisi) */}
-                <div className="lg:col-span-8">
-                  <FormBooking
-                    customer={customer}
-                    units={units}
-                    ringkasan={ringkasan}
-                    jadwal={jadwal}
-                    teknisi={teknisi}
-                    teknisiList={teknisiList}
-                    layananList={layananList}
-                    errors={errors}
-                    peringatan={peringatanPelanggan}
-                    onCustomerChange={handleCustomer}
-                    onUnitChange={handleUnit}
-                    onAddUnit={addUnit}
-                    onRemoveUnit={removeUnit}
-                    onTanggalChange={handleTanggal}
-                    onJamChange={handleJam}
-                    onTeknisiChange={setTeknisi}
-                  />
-                </div>
-
-                {/* Kolom Kanan: Card Estimasi Biaya (Sticky) */}
-                <div className="lg:sticky lg:top-6 lg:col-span-4">
-                  <BookingSummary
-                    items={ringkasan}
-                    action={
-                      <button
-                        type="button"
-                        onClick={lanjutKeReview}
-                        className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-bold text-white shadow-md hover:bg-secondary transition"
-                      >
-                        <span>Lanjutkan ke Review</span>
-                        <ArrowRight size={18} />
-                      </button>
-                    }
-                  />
-                </div>
-              </div>
+              <StepCustomer
+                data={customer}
+                errors={errors}
+                onChange={handleCustomer}
+                onNext={lanjut}
+                labelNext={labelNext}
+                peringatan={peringatan}
+                dikenal={dikenal}
+                onPilihAlamat={pilihAlamat}
+              />
             )}
 
             {step === 2 && (
-              <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
-                {/* Kolom Kiri: Tampilan Review & Pemilihan Pembayaran */}
-                <div className="lg:col-span-8">
-                  {errors.server && (
-                    <p className="mb-4 rounded-lg bg-red-100 p-3 text-sm text-red-700">{errors.server}</p>
-                  )}
-                  <StepReview
-                    customer={{ ...customer, telepon: teleponBersih }}
-                    ringkasan={ringkasan}
-                    jadwal={jadwal}
-                    teknisiNama={teknisi || "Belum Ditugaskan"}
-                    metodePembayaran={metodePembayaran}
-                    bank={bank}
-                    setuju={setuju}
-                    errors={errors}
-                    submitting={submitting}
-                    onMetodeChange={(m) => {
-                      setMetodePembayaran(m);
-                      setErrors((prev) => ({ ...prev, metodePembayaran: "", bank: "" }));
-                    }}
-                    onBankChange={(b) => {
-                      setBank(b);
-                      setErrors((prev) => ({ ...prev, bank: "" }));
-                    }}
-                    onSetuju={(v) => {
-                      setSetuju(v);
-                      setErrors((prev) => ({ ...prev, setuju: "" }));
-                    }}
-                    onBack={kembaliKeBooking}
-                    onUbahBooking={kembaliKeBooking}
-                    onSubmit={kirimBooking}
-                  />
-                </div>
+              <StepUnits
+                units={units}
+                ringkasan={ringkasan}
+                layananList={layananList}
+                errors={errors.units}
+                onChangeUnit={handleUnit}
+                onAdd={addUnit}
+                onRemove={removeUnit}
+                onBack={kembali}
+                onNext={lanjut}
+                labelNext={labelNext}
+              />
+            )}
 
-                {/* Kolom Kanan: Card Estimasi Biaya (Sticky) */}
-                <div className="lg:sticky lg:top-6 lg:col-span-4">
-                  <BookingSummary
-                    items={ringkasan}
-                    action={
-                      <button
-                        type="button"
-                        onClick={kirimBooking}
-                        disabled={submitting}
-                        className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-bold text-white shadow-md hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-60 transition"
-                      >
-                        {submitting ? (
-                          <>
-                            <Loader2 size={18} className="animate-spin" />
-                            <span>Memproses...</span>
-                          </>
-                        ) : (
-                          <span>Konfirmasi & Selesai</span>
-                        )}
-                      </button>
-                    }
-                  />
-                </div>
+            {step === 3 && (
+              <StepSchedule
+                jadwal={jadwal}
+                errors={errors}
+                jumlahUnit={units.length}
+                durasi={hitungDurasi(ringkasan)}
+                onTanggal={handleTanggal}
+                onJam={handleJam}
+                onBack={kembali}
+                onNext={lanjut}
+                labelNext={labelNext}
+              />
+            )}
+
+            {/* Langkah 4.6: pembayaran tampil tepat di atas review */}
+            {step === 4 && (
+              <div className="space-y-5">
+                <PembayaranSection bayar={bayar} onChange={setBayar} total={hitungTotal(ringkasan)} />
+                <StepReview
+                  customer={{ ...customer, telepon: teleponBersih, alamat: alamatTerpilih }}
+                  ringkasan={ringkasan}
+                  jadwal={jadwal}
+                  setuju={setuju}
+                  errors={errors}
+                  submitting={submitting}
+                  onSetuju={(v) => {
+                    setSetuju(v);
+                    setErrors({});
+                  }}
+                  onGo={lompat}
+                  onBack={kembali}
+                  onSubmit={kirim}
+                />
               </div>
             )}
 
-            {step === 3 && hasil && <StepSuccess hasil={hasil} onReset={resetForm} />}
+            {step === 5 && hasil && <StepSuccess hasil={hasil} onReset={reset} />}
           </div>
         </div>
       </main>

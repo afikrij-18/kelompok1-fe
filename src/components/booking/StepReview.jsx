@@ -1,5 +1,14 @@
-// src/components/booking/StepReview.jsx
-import { User, Snowflake, CalendarCheck, Receipt, ArrowLeft, BadgeCheck, Loader2, CreditCard, Building } from "lucide-react";
+// src/components/booking/StepReview.jsx  (FE, DIGANTI seluruh isi)
+// periksa semua data sebelum disimpan
+import {
+  User,
+  Snowflake,
+  CalendarCheck,
+  Receipt,
+  ArrowLeft,
+  BadgeCheck,
+  Loader2,
+} from "lucide-react";
 import {
   BIAYA_KUNJUNGAN,
   GARANSI_HARI,
@@ -43,17 +52,12 @@ export default function StepReview({
   customer,
   ringkasan,
   jadwal,
-  teknisiNama,
-  metodePembayaran,
-  bank,
   setuju,
   errors,
   submitting,
-  onMetodeChange,
-  onBankChange,
   onSetuju,
+  onGo,
   onBack,
-  onUbahBooking,
   onSubmit,
 }) {
   const subtotal = hitungTotal(ringkasan);
@@ -63,41 +67,71 @@ export default function StepReview({
   return (
     <div className="mx-auto max-w-5xl rounded-xl border border-soft bg-white p-6 shadow-sm">
       <div className="flex items-center gap-3 border-b border-soft pb-4">
-        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-soft font-bold text-primary">2</span>
+        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-soft font-bold text-primary">
+          4
+        </span>
         <div>
-          <h2 className="text-lg font-bold uppercase text-slate-900">Review, Pembayaran & Konfirmasi</h2>
-          <p className="text-sm text-slate-600">Periksa kembali data pesanan, pilih metode pembayaran, dan konfirmasi.</p>
+          <h2 className="text-lg font-bold uppercase text-slate-900">
+            Review & Konfirmasi Booking
+          </h2>
+          <p className="text-sm text-slate-600">
+            Periksa kembali data pelanggan, unit AC, dan jadwal.
+          </p>
         </div>
       </div>
 
       <div className="mt-6 space-y-4">
-        <Bagian icon={User} judul="Data Pelanggan & Lokasi" onUbah={onUbahBooking}>
+        <Bagian
+          icon={User}
+          judul="Data Pelanggan & Lokasi"
+          onUbah={() => onGo(1)}
+        >
           <p className="text-base font-bold text-primary">{customer.nama}</p>
-          <p className="text-sm text-slate-800">WhatsApp: <strong>{customer.telepon}</strong></p>
+          <p className="text-sm text-slate-800">
+            WhatsApp: <strong>{customer.telepon}</strong>
+          </p>
           <p className="text-xs text-slate-600">{customer.alamat}</p>
         </Bagian>
 
-        <Bagian icon={Snowflake} judul={`Rincian Unit AC (${ringkasan.length} Unit)`} onUbah={onUbahBooking}>
+        <Bagian
+          icon={Snowflake}
+          judul={`Rincian Unit AC (${ringkasan.length} Unit)`}
+          onUbah={() => onGo(2)}
+        >
           {ringkasan.map((u, i) => (
-            <div key={u.uid} className="rounded-lg border border-soft bg-white p-3">
+            <div
+              key={u.uid}
+              className="rounded-lg border border-soft bg-white p-3"
+            >
               <p className="text-sm font-bold text-slate-900">
-                <span className="mr-2 rounded bg-primary/10 px-2 py-0.5 text-[11px] text-primary">Unit #{i + 1}</span>
+                <span className="mr-2 rounded bg-primary/10 px-2 py-0.5 text-[11px] text-primary">
+                  Unit #{i + 1}
+                </span>
                 {u.layanan?.nama}
               </p>
               <p className="mt-1 text-xs text-slate-600">
                 {namaMerek(u)} {u.kapasitas} ({u.tipe}) • Lokasi: {u.lokasi}
               </p>
-              {u.catatan.trim() && <p className="text-xs italic text-slate-400">Keluhan: {u.catatan}</p>}
+              {u.catatan.trim() && (
+                <p className="text-xs italic text-slate-400">
+                  Keluhan: {u.catatan}
+                </p>
+              )}
             </div>
           ))}
         </Bagian>
 
-        <Bagian icon={CalendarCheck} judul="Jadwal & Teknisi Penugasan" onUbah={onUbahBooking}>
+        <Bagian
+          icon={CalendarCheck}
+          judul="Jadwal Kedatangan"
+          onUbah={() => onGo(3)}
+        >
           <p className="text-base font-bold text-primary">
             {formatTanggalPanjang(jadwal.tanggal)} • Pukul {jadwal.jam} WIB
           </p>
           <p className="text-xs text-slate-600">
-            Teknisi Ditugaskan: <strong className="text-slate-900">{teknisiNama}</strong> • Estimasi pengerjaan: ± {formatDurasi(durasi)}.
+            Estimasi pengerjaan {ringkasan.length} unit: ±{" "}
+            {formatDurasi(durasi)}.
           </p>
         </Bagian>
 
@@ -176,15 +210,23 @@ export default function StepReview({
           <div className="space-y-1 border-b border-soft pb-3 text-sm text-slate-600">
             {ringkasan.map((u, i) => (
               <div key={u.uid} className="flex justify-between">
-                <span>{u.layanan?.nama} (Unit #{i + 1})</span>
-                <span className="font-bold text-slate-900">{formatRupiah(u.layanan?.harga ?? 0)}</span>
+                <span>
+                  {u.layanan?.nama} (Unit #{i + 1})
+                </span>
+                <span className="font-bold text-slate-900">
+                  {formatRupiah(u.layanan?.harga ?? 0)}
+                </span>
               </div>
             ))}
 
             {TAMPILKAN_BIAYA_KUNJUNGAN && (
               <div className="flex justify-between text-primary">
                 <span>Biaya Kunjungan & Transport</span>
-                <span className="font-bold">{BIAYA_KUNJUNGAN === 0 ? "GRATIS" : formatRupiah(BIAYA_KUNJUNGAN)}</span>
+                <span className="font-bold">
+                  {BIAYA_KUNJUNGAN === 0
+                    ? "GRATIS"
+                    : formatRupiah(BIAYA_KUNJUNGAN)}
+                </span>
               </div>
             )}
             {GARANSI_HARI && (
@@ -196,11 +238,19 @@ export default function StepReview({
           </div>
 
           <div className="pt-3">
-            <span className="text-[11px] font-bold uppercase text-slate-400">Total Estimasi Pembayaran</span>
-            <p className="text-2xl font-bold text-primary">{formatRupiah(total)}</p>
+            <span className="text-[11px] font-bold uppercase text-slate-400">
+              Total Estimasi Pembayaran
+            </span>
+            <p className="text-2xl font-bold text-primary">
+              {formatRupiah(total)}
+            </p>
           </div>
 
-          {CATATAN_HARGA && <p className="mt-2 text-xs italic text-slate-400">{CATATAN_HARGA}</p>}
+          {CATATAN_HARGA && (
+            <p className="mt-2 text-xs italic text-slate-400">
+              {CATATAN_HARGA}
+            </p>
+          )}
         </div>
 
         {/* Persetujuan */}
@@ -213,13 +263,15 @@ export default function StepReview({
               className="mt-0.5 h-4 w-4 accent-[#2C5EAD]"
             />
             <span>
-              Pelanggan telah menyetujui syarat dan ketentuan booking serta bersedia dihubungi teknisi sebelum jadwal kedatangan.
+              Pelanggan telah menyetujui syarat dan ketentuan booking serta
+              bersedia dihubungi teknisi sebelum jadwal kedatangan.
             </span>
           </label>
-          {errors.setuju && <p className="mt-1 text-xs text-red-600">{errors.setuju}</p>}
+          {errors.setuju && (
+            <p className="mt-1 text-xs text-red-600">{errors.setuju}</p>
+          )}
         </div>
       </div>
-
       <div className="mt-8 flex items-center justify-between border-t border-soft pt-4">
         <button
           type="button"
@@ -237,7 +289,11 @@ export default function StepReview({
           disabled={submitting}
           className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-bold text-white shadow-lg hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-70"
         >
-          {submitting ? <Loader2 size={20} className="animate-spin" /> : <BadgeCheck size={20} />}
+          {submitting ? (
+            <Loader2 size={20} className="animate-spin" />
+          ) : (
+            <BadgeCheck size={20} />
+          )}
           {submitting ? "Memproses Booking..." : "KONFIRMASI BOOKING SEKARANG"}
         </button>
       </div>

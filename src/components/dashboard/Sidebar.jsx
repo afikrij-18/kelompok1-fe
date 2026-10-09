@@ -1,4 +1,4 @@
-// src/components/dashboard/Sidebar.jsx 
+// src/components/dashboard/Sidebar.jsx
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -20,13 +20,14 @@ const menuOperasional = [
   { name: "Booking", path: "/booking", icon: ClipboardList },
   { name: "Jadwal & Dispatch", path: null, icon: CalendarClock },
   { name: "Layanan AC", path: "/layanan", icon: Snowflake },
-  { name: "Teknisi Fleet", path: null, icon: Wrench },
+  { name: "Teknisi", path: "/technician", icon: Wrench },
   { name: "User", path: "/users", icon: Users },
   { name: "Uang Keluar", path: "/uang-keluar", icon: Wallet },
 ];
 
+// Langkah 2.2: "Laporan SLA & Rev" diganti "Laporan Penjualan"
 const menuLaporan = [
-  { name: "Laporan SLA & Rev", path: null, icon: FileText },
+  { name: "Laporan Penjualan", path: "/laporan-penjualan", icon: FileText },
   { name: "Pengaturan", path: null, icon: Settings },
 ];
 
@@ -42,7 +43,7 @@ function MenuGroup({ title, items }) {
           return (
             <li key={m.name}>
               {m.path ? (
-                // Langkah 2.2: menu "Booking" ikut aktif saat berada di /booking/baru
+                // Langkah 2.3: menu "Booking" ikut aktif saat berada di /booking/baru
                 // karena alamatnya diawali /booking
                 <NavLink
                   to={m.path}
