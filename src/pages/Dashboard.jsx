@@ -1,6 +1,6 @@
 // src/pages/Dashboard.jsx
-// Langkah 1: kartu statistik dan booking terbaru dari API booking.
-// Armada, beban kerja, dispatch, dan grafik masih data dummy (backend belum ada).
+// Langkah 4: kartu statistik dan booking terbaru dari API.
+// Armada, beban kerja, dispatch, dan grafik masih data dummy (belum disambungkan).
 import { useEffect, useState } from "react";
 import { CalendarCheck, Clock, ClipboardCheck, CheckCircle2, Wallet } from "lucide-react";
 import StatCard from "../components/dashboard/StatCard";
@@ -11,34 +11,39 @@ import DispatchTimeline from "../components/dashboard/DispatchTimeline";
 import BookingChart from "../components/dashboard/BookingChart";
 import { fleet, workload, dispatches, chartData } from "../data/dummy";
 import { getBookings } from "../services/bookingService";
+import { getSalesReport } from "../services/transactionService";
 import { getUser } from "../services/authService";
 import { hariIni } from "../utils/booking";
 
-// Langkah 1.1: hitung lima kartu statistik dari daftar booking
-// "Hari ini" = booking yang jadwalnya hari ini
-const hitungStats = (bookings) => {
+// Langkah 4.1: hitung lima kartu statistik. "Hari ini" = booking yang jadwalnya hari ini.
+// omzet null berarti laporan gagal dimuat, kartu menampilkan "-"
+const hitungStats = (bookings, omzet) => {
   const hari = hariIni();
   const jumlah = (fn) => bookings.filter(fn).length;
-  const pendapatan = bookings
-    .filter((b) => b.status === "Selesai")
-    .reduce((j, b) => j + b.total, 0);
 
   return [
     { id: 1, title: "Booking Hari Ini", value: String(jumlah((b) => b.tanggal === hari)), unit: "Pesanan", icon: CalendarCheck },
     { id: 2, title: "Booking Menunggu", value: String(jumlah((b) => b.status === "Menunggu")), unit: "Pesanan", icon: Clock },
     { id: 3, title: "Dikonfirmasi", value: String(jumlah((b) => b.status === "Dikonfirmasi")), unit: "Pesanan", icon: ClipboardCheck },
     { id: 4, title: "Selesai Hari Ini", value: String(jumlah((b) => b.status === "Selesai" && b.tanggal === hari)), unit: "Servis", icon: CheckCircle2 },
-    { id: 5, title: "Total Pendapatan", value: `Rp ${pendapatan.toLocaleString("id-ID")}`, unit: "", icon: Wallet },
+    {
+      id: 5,
+      title: "Total Pendapatan",
+      value: omzet === null ? "-" : `Rp ${omzet.toLocaleString("id-ID")}`,
+      unit: "",
+      icon: Wallet,
+    },
   ];
 };
 
 export default function Dashboard() {
   const user = getUser();
   const [bookings, setBookings] = useState([]);
+  const [omzet, setOmzet] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // Langkah 1.2: muat booking saat halaman dibuka
+  // Langkah 4.2: muat booking saat halaman dibuka
   useEffect(() => {
     getBookings()
       .then(setBookings)
@@ -52,7 +57,14 @@ export default function Dashboard() {
       .finally(() => setLoading(false));
   }, []);
 
-  const stats = hitungStats(bookings);
+  // Langkah 4.3: total pendapatan dari laporan pembayaran (semua waktu), gagal = kartu "-"
+  useEffect(() => {
+    getSalesReport()
+      .then((laporan) => setOmzet(laporan.totalOmzet))
+      .catch(() => {});
+  }, []);
+
+  const stats = hitungStats(bookings, omzet);
 
   return (
     <>
@@ -73,7 +85,7 @@ export default function Dashboard() {
 
         <BookingTable data={bookings} loading={loading} />
 
-        {/* masih data dummy, menunggu API teknisi, dispatch, dan laporan */}
+        {/* masih data dummy, menunggu penyambungan data teknisi, dispatch, dan grafik */}
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
           <FleetSummary data={fleet} />
           <WorkloadStats data={workload} />

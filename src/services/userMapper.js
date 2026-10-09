@@ -1,11 +1,11 @@
 // src/services/userMapper.js
-// Langkah 2.1: terjemahan nama field backend <-> frontend (sesuai models/User.js)
+// Langkah 1: terjemahan nama field backend <-> frontend (sesuai models/User.js)
 
-// kunci kiri = nilai di database
-const ROLE_DARI_API = { admin: "Admin", owner: "Owner", technician: "Teknisi" };
-const ROLE_KE_API = { Admin: "admin", Owner: "owner", Teknisi: "technician" };
+// Langkah 1.1: role di database hanya admin dan owner (teknisi sudah tabel sendiri)
+const ROLE_DARI_API = { admin: "Admin", owner: "Owner" };
+const ROLE_KE_API = { Admin: "admin", Owner: "owner" };
 
-// backend -> tampilan
+// backend -> tampilan, role yang tidak dikenal menjadi "" supaya form meminta memilih ulang
 export const fromApi = (u) => ({
   id: u.id,
   nama: u.name,

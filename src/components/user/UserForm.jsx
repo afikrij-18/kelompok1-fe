@@ -1,13 +1,15 @@
 // src/components/user/UserForm.jsx
+// Langkah 2: form tambah dan edit user, role hanya Admin dan Owner
 import { useState } from "react";
 import { X } from "lucide-react";
 
+// Langkah 2.1: role default Admin
 const kosong = {
   nama: "",
   email: "",
   telepon: "",
   password: "",
-  role: "Teknisi",
+  role: "Admin",
   status: "Aktif",
 };
 
@@ -57,7 +59,7 @@ export default function UserForm({ initialData, existingUsers, onSubmit, onClose
     setErrors({ ...errors, [name]: "", form: "" });
   };
 
-  // validasi, aturannya mengikuti models/User.js dan UserController.js
+  // Langkah 2.2: validasi, aturannya mengikuti models/User.js dan UserController.js
   const validate = () => {
     const e = {};
 
@@ -73,11 +75,7 @@ export default function UserForm({ initialData, existingUsers, onSubmit, onClose
       e.email = "Email wajib diisi";
     } else if (!/^\S+@\S+\.\S+$/.test(form.email)) {
       e.email = "Format email tidak valid";
-    } else if (
-      existingUsers.some(
-        (u) => u.email.toLowerCase() === form.email.toLowerCase() && u.id !== form.id
-      )
-    ) {
+    } else if (lain.some((u) => u.email.toLowerCase() === form.email.toLowerCase())) {
       e.email = "Email sudah terdaftar";
     }
 
@@ -88,9 +86,14 @@ export default function UserForm({ initialData, existingUsers, onSubmit, onClose
       e.telepon = "Nomor telepon sudah dipakai user lain";
     }
 
-    // Langkah 4.1: password hanya dicek saat tambah, saat edit diganti lewat dialog sendiri
+    // password hanya dicek saat tambah, saat edit diganti lewat dialog sendiri
     if (!isEdit && form.password.length < 6) {
       e.password = "Password minimal 6 karakter";
+    }
+
+    // Langkah 2.3: user lama dengan role tidak dikenal harus memilih ulang
+    if (!form.role) {
+      e.role = "Pilih role";
     }
 
     return e;
@@ -118,7 +121,7 @@ export default function UserForm({ initialData, existingUsers, onSubmit, onClose
     }`;
 
   return (
-    // Langkah 4.2: area gelap tidak menutup dialog, hanya tombol Batal atau X
+    // area gelap tidak menutup dialog, hanya tombol Batal atau X
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <div className="max-h-full w-full max-w-md overflow-y-auto rounded-xl bg-white p-6 shadow-xl">
         <div className="mb-4 flex items-center justify-between">
@@ -153,7 +156,7 @@ export default function UserForm({ initialData, existingUsers, onSubmit, onClose
             {errors.telepon && <p className="mt-1 text-xs text-red-600">{errors.telepon}</p>}
           </div>
 
-          {/* Langkah 4.3: kolom password hanya saat tambah user */}
+          {/* kolom password hanya saat tambah user */}
           {!isEdit && (
             <div>
               <label className="mb-1 block text-sm font-medium">Password</label>
@@ -172,12 +175,17 @@ export default function UserForm({ initialData, existingUsers, onSubmit, onClose
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="mb-1 block text-sm font-medium">Role</label>
+              {/* Langkah 2.4: hanya Admin dan Owner, teknisi dikelola di menu Teknisi */}
               <select name="role" value={form.role} onChange={handleChange} className={inputClass("role")}>
+                <option value="" disabled>Pilih role</option>
                 <option>Admin</option>
                 <option>Owner</option>
-                <option>Teknisi</option>
               </select>
-              {errors.role && <p className="mt-1 text-xs text-red-600">{errors.role}</p>}
+              {errors.role ? (
+                <p className="mt-1 text-xs text-red-600">{errors.role}</p>
+              ) : (
+                <p className="mt-1 text-xs text-gray-400">Teknisi dikelola di menu Teknisi.</p>
+              )}
             </div>
             <div>
               <label className="mb-1 block text-sm font-medium">Status</label>

@@ -5,11 +5,13 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import Login from "./pages/Login";
 import HomePage from "./pages/HomePage";
 import Dashboard from "./pages/Dashboard";
-import BookingList from "./pages/BookingList"; // baru
+import BookingList from "./pages/BookingList";
 import Booking from "./pages/Booking";
 import LayananManagement from "./pages/LayananManagement";
 import UserManagement from "./pages/UserManagement";
 import UangKeluar from "./pages/UangKeluar";
+import Teknisi from "./pages/Teknisi";
+import LaporanPenjualan from "./pages/LaporanPenjualan";
 
 function App() {
   return (
@@ -29,6 +31,9 @@ function App() {
               <Route path="/layanan" element={<LayananManagement />} />
               <Route path="/users" element={<UserManagement />} />
               <Route path="/uang-keluar" element={<UangKeluar />} />
+              <Route path="/technician" element={<Teknisi />} />
+              {/* Langkah 1.3: laporan penjualan dari pembayaran (transactions) */}
+              <Route path="/laporan-penjualan" element={<LaporanPenjualan />} />
             </Route>
           </Route>
         </Routes>

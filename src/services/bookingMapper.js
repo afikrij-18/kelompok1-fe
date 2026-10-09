@@ -1,8 +1,8 @@
 // src/services/bookingMapper.js
-// Langkah 2: terjemahan nama field backend <-> frontend (sesuai bookingController.js)
+// Langkah 1: terjemahan nama field backend <-> frontend (sesuai bookingController.js terbaru)
 import { formatJadwal } from "../utils/booking";
 
-// nilai di database <-> teks tampilan
+// Langkah 1.1: nilai di database <-> teks tampilan
 export const STATUS_OPSI = [
   { value: "pending", label: "Menunggu" },
   { value: "confirmed", label: "Dikonfirmasi" },
@@ -14,7 +14,8 @@ const STATUS_KE_API = Object.fromEntries(STATUS_OPSI.map((s) => [s.label, s.valu
 
 export const statusKeApi = (label) => STATUS_KE_API[label];
 
-// backend -> tampilan
+// Langkah 1.2: backend -> tampilan
+// alamat servis ada di b.address (tabel customer_addresses), bukan di customer
 export const fromApi = (b) => {
   const jam = (b.booking_time || "").slice(0, 5); // "14:30:00" -> "14:30"
   return {
@@ -22,7 +23,11 @@ export const fromApi = (b) => {
     kode: b.reg_no,
     pelanggan: b.customer?.name || "",
     telepon: b.customer?.phone || "",
-    alamat: b.customer?.address || "",
+    alamatId: b.address_id,
+    alamat: b.address?.address || "",
+    labelAlamat: b.address?.label || "",
+    catatanLokasi: b.address?.notes_location || "",
+    catatan: b.notes || "", // catatan booking, harus dikirim ulang saat PUT agar tidak terhapus
     tanggal: b.booking_date,
     jam,
     jadwal: formatJadwal(b.booking_date, jam),
@@ -42,11 +47,25 @@ export const fromApi = (b) => {
   };
 };
 
-// tampilan -> backend, harga tidak dikirim (backend menghitung dari tabel services)
+// Langkah 1.3: tampilan -> backend
+// - ada alamatId: kirim address_id (alamat tersimpan)
+// - tidak ada: kirim alamat baru lengkap dengan label dan catatan lokasi
+// harga tidak dikirim, backend menghitungnya dari tabel services
 export const toApi = (p) => ({
-  customer: { name: p.pelanggan, phone: p.telepon, address: p.alamat },
+  customer: {
+    name: p.pelanggan,
+    phone: p.telepon,
+    ...(p.alamatId
+      ? { address_id: p.alamatId }
+      : {
+          address: p.alamat,
+          address_label: p.labelAlamat || undefined,
+          notes_location: p.catatanLokasi || undefined,
+        }),
+  },
   booking_date: p.tanggal,
   booking_time: `${p.jam}:00`,
+  notes: p.catatan || null,
   units: p.items.map((it) => ({
     service_id: it.layananId,
     brand_ac: it.merek,

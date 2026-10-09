@@ -1,19 +1,19 @@
 // src/components/user/UserTable.jsx
-// Tambahan: ikon KeyRound dan prop onChangePassword
+// Langkah 3: tabel user, filter role hanya Admin dan Owner
 import { useState } from "react";
 import { Search, Pencil, Trash2, Plus, KeyRound } from "lucide-react";
 
+// Langkah 3.1: warna badge role, role tak dikenal memakai warna abu-abu
 const roleColor = {
   Admin: "bg-primary text-white",
   Owner: "bg-accent text-white",
-  Teknisi: "bg-soft text-primary",
 };
 const statusColor = {
   Aktif: "bg-green-100 text-green-700",
   Nonaktif: "bg-red-100 text-red-700",
 };
 
-const roles = ["Semua", "Admin", "Owner", "Teknisi"];
+const roles = ["Semua", "Admin", "Owner"];
 
 export default function UserTable({ data, onAdd, onEdit, onDelete, onChangePassword }) {
   const [keyword, setKeyword] = useState("");
@@ -81,7 +81,9 @@ export default function UserTable({ data, onAdd, onEdit, onDelete, onChangePassw
                 <td className="px-3 py-2">{u.email}</td>
                 <td className="px-3 py-2">{u.telepon}</td>
                 <td className="px-3 py-2">
-                  <span className={`rounded-full px-2 py-0.5 text-xs ${roleColor[u.role]}`}>{u.role}</span>
+                  <span className={`rounded-full px-2 py-0.5 text-xs ${roleColor[u.role] || "bg-gray-100 text-gray-600"}`}>
+                    {u.role || "Role tidak dikenal"}
+                  </span>
                 </td>
                 <td className="px-3 py-2">
                   <span className={`rounded-full px-2 py-0.5 text-xs ${statusColor[u.status]}`}>{u.status}</span>
@@ -95,7 +97,7 @@ export default function UserTable({ data, onAdd, onEdit, onDelete, onChangePassw
                     >
                       <Pencil size={16} />
                     </button>
-                    {/* Langkah 2.1: tombol ganti password, membuka dialog terpisah */}
+                    {/* tombol ganti password, membuka dialog terpisah */}
                     <button
                       onClick={() => onChangePassword(u)}
                       title="Ganti Password"
