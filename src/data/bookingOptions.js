@@ -21,3 +21,17 @@ export const MEREK = ["Daikin", "Panasonic", "Sharp", "LG", "Samsung", "Midea", 
 export const KAPASITAS = ["0.5 PK", "0.75 PK", "1 PK", "1.5 PK", "2 PK", "2.5 PK"];
 export const TIPE = ["Split Wall", "Cassette", "Floor Standing", "Portable"];
 export const SLOT_JAM = ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00"];
+
+// Metode pembayaran di langkah Review. value disimpan di state, label tampil di UI.
+export const METODE_PEMBAYARAN = [
+  { value: "tunai", label: "Tunai" },
+  { value: "transfer", label: "Transfer Bank" },
+];
+
+// Bank tujuan, tampil hanya jika metode = transfer.
+export const BANK_OPTIONS = [
+  { value: "bca", nama: "BCA", rekening: "8210 4567 89 a.n. ServisAC" },
+  { value: "mandiri", nama: "Mandiri", rekening: "8900 1234 5678 a.n. ServisAC" },
+  { value: "bni", nama: "BNI", rekening: "1234 5678 90 a.n. ServisAC" },
+  { value: "bri", nama: "BRI", rekening: "0021 0100 3456 78 a.n. ServisAC" },
+];

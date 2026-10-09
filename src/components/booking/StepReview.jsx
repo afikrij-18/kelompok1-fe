@@ -13,9 +13,10 @@ import {
 } from "lucide-react";
 import {
   BIAYA_KUNJUNGAN,
-  TAMPILKAN_BIAYA_KUNJUNGAN,
   GARANSI_HARI,
   CATATAN_HARGA,
+  METODE_PEMBAYARAN,
+  BANK_OPTIONS,
 } from "../../data/bookingOptions";
 import {
   formatRupiah,
@@ -28,7 +29,6 @@ import {
 } from "../../utils/booking";
 import { METODE_OPSI } from "../../services/transactionMapper";
 
-// Langkah 6.1: satu bagian review dengan tombol "Ubah"
 function Bagian({ icon: Icon, judul, onUbah, children }) {
   return (
     <div className="flex flex-col items-start justify-between gap-3 rounded-xl border border-soft bg-soft/20 p-4 sm:flex-row">
@@ -177,6 +177,7 @@ export default function StepReview({
           </div>
         </Bagian>
 
+<<<<<<< HEAD
         {/* Bagian Pembayaran di Langkah 2 */}
         <div className="rounded-xl border border-soft bg-white p-5 shadow-sm">
           <div className="flex items-center gap-3">
@@ -264,6 +265,70 @@ export default function StepReview({
                   className={inputClass(false)}
                 />
               </div>
+=======
+        {/* Pilihan Metode Pembayaran */}
+        <div className="rounded-xl border border-secondary/30 bg-soft/20 p-5">
+          <h4 className="mb-3 flex items-center gap-2 text-sm font-bold text-slate-900">
+            <CreditCard size={18} className="text-secondary" />
+            PILIHAN METODE PEMBAYARAN <span className="text-red-600">*</span>
+          </h4>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {METODE_PEMBAYARAN.map((m) => {
+              const dipilih = metodePembayaran === m.value;
+              return (
+                <label
+                  key={m.value}
+                  className={`flex cursor-pointer items-center gap-3 rounded-xl border p-4 transition-all ${
+                    dipilih
+                      ? "border-primary bg-white shadow-md ring-2 ring-primary/20"
+                      : "border-soft bg-white hover:bg-soft/50"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="metodePembayaran"
+                    value={m.value}
+                    checked={dipilih}
+                    onChange={(e) => onMetodeChange(e.target.value)}
+                    className="h-4 w-4 accent-[#2C5EAD]"
+                  />
+                  <span className="text-sm font-bold text-slate-900">{m.label}</span>
+                </label>
+              );
+            })}
+          </div>
+          {errors.metodePembayaran && <p className="mt-2 text-xs text-red-600">{errors.metodePembayaran}</p>}
+
+          {/* Opsi Bank jika memilih transfer */}
+          {metodePembayaran === "transfer" && (
+            <div className="mt-4 border-t border-soft pt-4">
+              <label className="mb-2 flex items-center gap-2 text-xs font-bold text-slate-800">
+                <Building size={16} className="text-primary" />
+                PILIH BANK TUJUAN TRANSFER <span className="text-red-600">*</span>
+              </label>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-4">
+                {BANK_OPTIONS.map((b) => {
+                  const dipilih = bank === b.value;
+                  return (
+                    <button
+                      key={b.value}
+                      type="button"
+                      onClick={() => onBankChange(b.value)}
+                      className={`flex flex-col items-start rounded-lg border p-3 text-left transition-all ${
+                        dipilih
+                          ? "border-primary bg-primary text-white shadow"
+                          : "border-soft bg-white text-slate-800 hover:bg-soft"
+                      }`}
+                    >
+                      <span className="text-sm font-bold">{b.nama}</span>
+                      <span className={`text-[11px] ${dipilih ? "text-white/90" : "text-slate-500"}`}>{b.rekening}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              {errors.bank && <p className="mt-2 text-xs text-red-600">{errors.bank}</p>}
+>>>>>>> acec5e512bf0ec50536a3cb7d1268cb145f02ba1
             </div>
           )}
         </div>
@@ -360,7 +425,11 @@ export default function StepReview({
           className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm text-slate-600 hover:bg-soft disabled:opacity-50"
         >
           <ArrowLeft size={18} />
+<<<<<<< HEAD
           Kembali ke Detail Booking
+=======
+          Kembali ke Form Booking
+>>>>>>> acec5e512bf0ec50536a3cb7d1268cb145f02ba1
         </button>
 
         <button

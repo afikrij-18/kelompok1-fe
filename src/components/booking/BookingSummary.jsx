@@ -6,8 +6,8 @@ import { BIAYA_KUNJUNGAN, GARANSI_HARI, INFO_PEMBAYARAN } from "../../data/booki
 import { formatRupiah, hitungTotal } from "../../utils/booking";
 
 // items = unit yang sudah digabung dengan objek layanan terpilih
-// sudahDibayar = nominal yang sudah lunas sebelumnya (0 = booking baru / belum bayar)
-export default function BookingSummary({ items, sudahDibayar = 0 }) {
+// tombol aksi dirender oleh parent lewat prop `action`
+export default function BookingSummary({ items, action }) {
   const total = hitungTotal(items) + BIAYA_KUNJUNGAN;
   const sisa = Math.max(0, total - sudahDibayar);
   const lunasSemua = sisa === 0 && sudahDibayar > 0;
@@ -88,6 +88,8 @@ export default function BookingSummary({ items, sudahDibayar = 0 }) {
       </div>
 
       <p className="mt-3 rounded-lg bg-soft/30 p-2 text-center text-xs text-slate-500">{INFO_PEMBAYARAN}</p>
+
+      {action && <div className="mt-4 border-t border-soft pt-4">{action}</div>}
     </div>
   );
 }
