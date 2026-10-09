@@ -177,95 +177,6 @@ export default function StepReview({
           </div>
         </Bagian>
 
-<<<<<<< HEAD
-        {/* Bagian Pembayaran di Langkah 2 */}
-        <div className="rounded-xl border border-soft bg-white p-5 shadow-sm">
-          <div className="flex items-center gap-3">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-soft text-primary">
-              <Wallet size={18} />
-            </span>
-            <div>
-              <h3 className="text-base font-bold uppercase text-slate-900">Pembayaran</h3>
-              <p className="text-xs text-slate-600">
-                {sudahDibayar > 0 ? (
-                  <>Sudah dibayar {formatRupiah(sudahDibayar)} • Sisa tagihan {sisa > 0 ? formatRupiah(sisa) : "LUNAS"}</>
-                ) : (
-                  <>Total tagihan {formatRupiah(total)}</>
-                )}
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-            {pilihanBayar("belum", "Belum dibayar", sisa > 0 && sudahDibayar > 0 ? `Sisa ${formatRupiah(sisa)} dicatat nanti.` : "Pembayaran dicatat nanti setelah servis.")}
-            {pilihanBayar("lunas", sisa > 0 && sudahDibayar > 0 ? "Lunasi sisa sekarang" : "Lunas sekarang", sisa > 0 && sudahDibayar > 0 ? `Catat pelunasan sisa ${formatRupiah(sisa)}.` : "Catat pelunasan pembayaran sekarang.")}
-          </div>
-
-          {bayar.status === "lunas" && (
-            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div>
-                <label htmlFor="metodeBayar" className="mb-1 block text-xs font-bold text-slate-800">
-                  Metode Pembayaran
-                </label>
-                <select
-                  id="metodeBayar"
-                  value={bayar.metode}
-                  onChange={(e) => ubahBayar("metode", e.target.value)}
-                  className={inputClass(false)}
-                >
-                  {METODE_OPSI.map((m) => (
-                    <option key={m.value} value={m.value}>{m.label}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Pilihan Bank jika metode transfer_bank */}
-              {bayar.metode === "transfer_bank" && (
-                <div>
-                  <label htmlFor="pilihanBank" className="mb-1 block text-xs font-bold text-slate-800">
-                    Pilihan Bank
-                  </label>
-                  <select
-                    id="pilihanBank"
-                    value={bayar.bank || "BCA"}
-                    onChange={(e) => ubahBayar("bank", e.target.value)}
-                    className={inputClass(false)}
-                  >
-                    <option value="BCA">BCA (1234567890 a.n. ServisAC)</option>
-                    <option value="Mandiri">Mandiri (0987654321 a.n. ServisAC)</option>
-                    <option value="BNI">BNI (1122334455 a.n. ServisAC)</option>
-                    <option value="BRI">BRI (5544332211 a.n. ServisAC)</option>
-                  </select>
-                </div>
-              )}
-
-              <div>
-                <label className="mb-1 block text-xs font-bold text-slate-800">Jumlah Dibayar</label>
-                <input
-                  value={formatRupiah(sisa > 0 ? sisa : total)}
-                  readOnly
-                  className={`${inputClass(false)} bg-slate-50`}
-                />
-                {sudahDibayar > 0 && sisa > 0 && (
-                  <p className="mt-1 text-[11px] text-slate-500">
-                    * Sesuai sisa tagihan tambahan (Total {formatRupiah(total)} - Terbayar {formatRupiah(sudahDibayar)})
-                  </p>
-                )}
-              </div>
-
-              <div className="sm:col-span-2">
-                <label htmlFor="catatanBayar" className="mb-1 block text-xs font-bold text-slate-800">
-                  Catatan <span className="font-normal text-slate-400">(opsional)</span>
-                </label>
-                <input
-                  id="catatanBayar"
-                  value={bayar.catatan}
-                  onChange={(e) => ubahBayar("catatan", e.target.value)}
-                  placeholder="Contoh: transfer via BCA a.n. pelanggan"
-                  className={inputClass(false)}
-                />
-              </div>
-=======
         {/* Pilihan Metode Pembayaran */}
         <div className="rounded-xl border border-secondary/30 bg-soft/20 p-5">
           <h4 className="mb-3 flex items-center gap-2 text-sm font-bold text-slate-900">
@@ -328,7 +239,6 @@ export default function StepReview({
                 })}
               </div>
               {errors.bank && <p className="mt-2 text-xs text-red-600">{errors.bank}</p>}
->>>>>>> acec5e512bf0ec50536a3cb7d1268cb145f02ba1
             </div>
           )}
         </div>
@@ -425,11 +335,7 @@ export default function StepReview({
           className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm text-slate-600 hover:bg-soft disabled:opacity-50"
         >
           <ArrowLeft size={18} />
-<<<<<<< HEAD
-          Kembali ke Detail Booking
-=======
           Kembali ke Form Booking
->>>>>>> acec5e512bf0ec50536a3cb7d1268cb145f02ba1
         </button>
 
         <button
