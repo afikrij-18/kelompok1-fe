@@ -4,8 +4,9 @@ import { BadgeCheck } from "lucide-react";
 import { BIAYA_KUNJUNGAN, GARANSI_HARI, INFO_PEMBAYARAN } from "../../data/bookingOptions";
 import { formatRupiah, hitungTotal } from "../../utils/booking";
 
-// Langkah 7.1: items = unit yang sudah digabung dengan objek layanan terpilih
-export default function BookingSummary({ items }) {
+// items = unit yang sudah digabung dengan objek layanan terpilih
+// tombol aksi dirender oleh parent lewat prop `action`
+export default function BookingSummary({ items, action }) {
   const total = hitungTotal(items) + BIAYA_KUNJUNGAN;
 
   return (
@@ -44,6 +45,8 @@ export default function BookingSummary({ items }) {
       </div>
 
       <p className="mt-3 rounded-lg bg-soft/30 p-2 text-center text-xs text-slate-500">{INFO_PEMBAYARAN}</p>
+
+      {action && <div className="mt-4 border-t border-soft pt-4">{action}</div>}
     </div>
   );
 }
