@@ -1,5 +1,5 @@
 // src/services/bookingMapper.js
-// Langkah 1: terjemahan nama field backend <-> frontend (sesuai bookingController.js terbaru)
+// Langkah 1: terjemahan nama field backend <-> frontend (sesuai bookingController.js)
 import { formatJadwal } from "../utils/booking";
 
 // Langkah 1.1: nilai di database <-> teks tampilan
@@ -16,8 +16,17 @@ export const statusKeApi = (label) => STATUS_KE_API[label];
 
 // Langkah 1.2: backend -> tampilan
 // alamat servis ada di b.address (tabel customer_addresses), bukan di customer
+// b.transactions diisi bookingService (digabung dari GET /transactions)
 export const fromApi = (b) => {
   const jam = (b.booking_time || "").slice(0, 5); // "14:30:00" -> "14:30"
+  const transaksiMentah = b.transactions || [];
+
+  // hanya pembayaran berstatus paid yang dihitung
+  const totalDibayar = transaksiMentah
+    .filter((t) => t.payment_status === "paid")
+    .reduce((j, t) => j + Number(t.amount_paid || 0), 0);
+  const total = Number(b.total_price || 0);
+
   return {
     id: b.id,
     kode: b.reg_no,
@@ -33,18 +42,11 @@ export const fromApi = (b) => {
     jadwal: formatJadwal(b.booking_date, jam),
     status: STATUS[b.status] || b.status,
     total: b.total_price,
-    totalDibayar: (b.transactions || [])
-      .filter((t) => t.payment_status === "paid")
-      .reduce((j, t) => j + Number(t.amount_paid || 0), 0),
-    // Lunas kalau total yang sudah dibayar menutupi total tagihan.
-    // Kalau tambah layanan tapi tambahannya belum dibayar -> kembali Belum.
-    paid:
-      Number(b.total_price || 0) > 0 &&
-      (b.transactions || [])
-        .filter((t) => t.payment_status === "paid")
-        .reduce((j, t) => j + Number(t.amount_paid || 0), 0) >= Number(b.total_price || 0),
+    totalDibayar,
+    // lunas kalau pembayaran menutupi total tagihan
+    paid: total > 0 && totalDibayar >= total,
     teknisiId: b.technician_id || b.technician?.id || "",
-    transaksi: (b.transactions || []).map(t => ({
+    transaksi: transaksiMentah.map((t) => ({
       id: t.id,
       invoice: t.invoice_no,
       metode: t.payment_method,
@@ -71,6 +73,7 @@ export const fromApi = (b) => {
 // - ada alamatId: kirim address_id (alamat tersimpan)
 // - tidak ada: kirim alamat baru lengkap dengan label dan catatan lokasi
 // harga tidak dikirim, backend menghitungnya dari tabel services
+// technician_id diabaikan backend sampai kolomnya ada, tetapi ikut dikirim dan dikirim ulang apa adanya
 export const toApi = (p) => ({
   customer: {
     name: p.pelanggan,
@@ -86,6 +89,7 @@ export const toApi = (p) => ({
   booking_date: p.tanggal,
   booking_time: `${p.jam}:00`,
   notes: p.catatan || null,
+  technician_id: p.teknisiId ? Number(p.teknisiId) : null,
   units: p.items.map((it) => ({
     service_id: it.layananId,
     brand_ac: it.merek,

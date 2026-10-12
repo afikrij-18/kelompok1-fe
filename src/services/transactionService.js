@@ -11,7 +11,9 @@ export async function getSalesReport({ from, to } = {}) {
     query.set("to", to);
   }
   const qs = query.toString();
+
   const body = await apiFetch(`/transactions/report${qs ? `?${qs}` : ""}`);
+
   return {
     totalOmzet: body.total_revenue || 0,
     totalTransaksi: body.total_transactions || 0,
@@ -20,12 +22,13 @@ export async function getSalesReport({ from, to } = {}) {
   };
 }
 
+// Langkah 2.2: semua transaksi (semua status), untuk riwayat pembayaran dan invoice per booking
 export async function getTransactions() {
   const body = await apiFetch("/transactions");
-  return (body.data || []).map(fromApi);
+  return body.data.map(fromApi);
 }
 
-// Langkah 2.2: catat pembayaran lunas untuk satu booking
+// Langkah 2.3: catat pembayaran lunas untuk satu booking
 // metode = cash | transfer_bank | qris
 export async function createTransaction({ bookingId, metode, jumlah, catatan }) {
   const body = await apiFetch("/transactions", {
