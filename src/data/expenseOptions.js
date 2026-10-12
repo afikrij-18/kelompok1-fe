@@ -24,6 +24,7 @@ export const WARNA_KATEGORI = {
 export const METODE_KELUAR = [
   { value: "cash", label: "Tunai" },
   { value: "transfer_bank", label: "Transfer Bank" },
+  { value: "qris", label: "QRIS" },
 ];
 
 export const labelMetodeKeluar = (value) =>
