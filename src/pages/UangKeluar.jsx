@@ -1,10 +1,15 @@
 // src/pages/UangKeluar.jsx  (FE, DIGANTI seluruh isi)
-// Langkah 8: halaman Uang Keluar, filter tanggal, ringkasan, dan tabel
+// Langkah 3: halaman Uang Keluar, sekarang dengan form tambah dan edit
 import { useEffect, useState } from "react";
 import { Plus } from "lucide-react";
 import ExpenseSummary from "../components/uangkeluar/ExpenseSummary";
 import ExpenseTable from "../components/uangkeluar/ExpenseTable";
-import { getExpenses } from "../services/expenseService";
+import ExpenseForm from "../components/uangkeluar/ExpenseForm.jsx";
+import {
+  getExpenses,
+  createExpense,
+  updateExpense,
+} from "../services/expenseService";
 import {
   rentangBulan,
   namaBulan,
@@ -18,7 +23,7 @@ const pesanError = (err) =>
     ? "Tidak dapat terhubung ke server. Pastikan backend sudah berjalan."
     : err.message;
 
-// Langkah 8.1: tombol periode cepat
+// Tombol periode cepat
 const PRESET = [
   { id: "bulan-ini", label: "Bulan Ini" },
   { id: "bulan-lalu", label: "Bulan Lalu" },
@@ -31,13 +36,20 @@ export default function UangKeluar() {
   const [error, setError] = useState("");
   const [percobaan, setPercobaan] = useState(0);
 
-  // Langkah 8.2: filter awal = bulan ini, "custom" dipakai saat tanggal diisi sendiri
+  // Langkah 3.1: form dibuka atau ditutup, editing = pengeluaran yang diedit (null = mode tambah)
+  const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState(null);
+
+  // Langkah 3.2: pesan di atas tabel, { tipe: "sukses" | "error", teks }
+  const [pesan, setPesan] = useState(null);
+
+  // filter awal = bulan ini, "custom" dipakai saat tanggal diisi sendiri
   const [filter, setFilter] = useState({
     preset: "bulan-ini",
     ...rentangBulan(0),
   });
 
-  // Langkah 8.3: muat data saat halaman dibuka dan setiap kali "Coba lagi"
+  // muat data saat halaman dibuka dan setiap kali "Coba lagi"
   useEffect(() => {
     let batal = false;
     getExpenses()
@@ -61,7 +73,7 @@ export default function UangKeluar() {
     setPercobaan((p) => p + 1);
   };
 
-  // Langkah 8.4: pilih periode cepat
+  // pilih periode cepat
   const pilihPreset = (id) => {
     if (id === "bulan-ini") setFilter({ preset: id, ...rentangBulan(0) });
     else if (id === "bulan-lalu")
@@ -69,11 +81,11 @@ export default function UangKeluar() {
     else setFilter({ preset: id, dari: "", sampai: "" });
   };
 
-  // Langkah 8.5: mengisi tanggal sendiri mengubah periode menjadi "custom"
+  // mengisi tanggal sendiri mengubah periode menjadi "custom"
   const ubahTanggal = (field, nilai) =>
     setFilter((f) => ({ ...f, preset: "custom", [field]: nilai }));
 
-  // Langkah 8.6: filter hanya aktif jika kedua tanggal terisi, tanggal akhir tidak boleh lebih awal
+  // filter hanya aktif jika kedua tanggal terisi, tanggal akhir tidak boleh lebih awal
   const adaRentang = Boolean(filter.dari && filter.sampai);
   const rentangSalah = adaRentang && filter.dari > filter.sampai;
   const terfilter = rentangSalah
@@ -84,7 +96,7 @@ export default function UangKeluar() {
         )
       : data;
 
-  // Langkah 8.7: teks periode untuk kartu ringkasan
+  // teks periode untuk kartu ringkasan
   let periode = "Semua waktu";
   if (filter.preset === "bulan-ini") periode = `Bulan ini (${namaBulan(0)})`;
   else if (filter.preset === "bulan-lalu")
@@ -95,10 +107,55 @@ export default function UangKeluar() {
 
   const ringkasan = ringkasPengeluaran(terfilter);
 
-  // Langkah 8.8: sementara hanya dicetak, diganti dialog di Tahap 2
-  const handleAdd = () => console.log("tambah pengeluaran");
-  const handleEdit = (e) => console.log("edit pengeluaran", e);
-  const handleDelete = (e) => console.log("hapus pengeluaran", e);
+  // Langkah 3.3: buka form kosong untuk tambah
+  const handleAdd = () => {
+    setEditing(null);
+    setPesan(null);
+    setShowForm(true);
+  };
+
+  // Langkah 3.4: buka form berisi data yang dipilih untuk edit
+  const handleEdit = (pengeluaran) => {
+    setEditing(pengeluaran);
+    setPesan(null);
+    setShowForm(true);
+  };
+
+  const handleClose = () => {
+    setShowForm(false);
+    setEditing(null);
+  };
+
+  // Langkah 3.5: dipanggil ExpenseForm setelah validasi lolos
+  // error dari service dilempar ke form agar tampil di dalam dialog
+  const handleSubmit = async (form) => {
+    if (editing) await updateExpense(editing.id, form);
+    else await createExpense(form);
+
+    // tanggal di luar periode yang sedang tampil tidak terlihat di tabel, beri tahu
+    const diLuarPeriode =
+      adaRentang &&
+      (form.tanggal < filter.dari || form.tanggal > filter.sampai);
+    const aksi = editing ? "diperbarui" : "ditambahkan";
+    handleClose();
+    setPesan({
+      tipe: "sukses",
+      teks: `Pengeluaran "${form.keterangan.trim()}" berhasil ${aksi}.${
+        diLuarPeriode ? " Tanggalnya di luar periode yang sedang tampil." : ""
+      }`,
+    });
+
+    // muat ulang daftar, kegagalan di sini dilaporkan di halaman, bukan di form
+    try {
+      setData(await getExpenses());
+    } catch (err) {
+      setPesan({ tipe: "error", teks: pesanError(err) });
+    }
+  };
+
+  // sementara hanya dicetak, diganti dialog hapus di Tahap 3
+  const handleDelete = (pengeluaran) =>
+    console.log("hapus pengeluaran", pengeluaran);
 
   return (
     <>
@@ -107,7 +164,6 @@ export default function UangKeluar() {
       </header>
 
       <main className="space-y-6 p-6">
-        {/* Langkah 8.9: baris filter periode dan tombol tambah */}
         <div className="flex flex-wrap items-end justify-between gap-3 rounded-xl bg-white p-4 shadow">
           <div className="flex flex-wrap items-end gap-3">
             <div className="flex gap-2">
@@ -155,6 +211,22 @@ export default function UangKeluar() {
           </button>
         </div>
 
+        {/* Langkah 3.6: pesan sukses (hijau) atau error (merah), bisa ditutup */}
+        {pesan && (
+          <div
+            className={`flex items-start justify-between gap-3 rounded-lg px-4 py-2 text-sm ${
+              pesan.tipe === "error"
+                ? "bg-red-100 text-red-700"
+                : "bg-green-100 text-green-700"
+            }`}
+          >
+            <span>{pesan.teks}</span>
+            <button onClick={() => setPesan(null)} className="font-bold">
+              ×
+            </button>
+          </div>
+        )}
+
         {rentangSalah && (
           <p className="rounded-lg bg-red-100 px-4 py-2 text-sm text-red-700">
             Tanggal akhir tidak boleh lebih awal dari tanggal awal.
@@ -191,6 +263,15 @@ export default function UangKeluar() {
           )
         )}
       </main>
+
+      {/* Langkah 3.7: form hanya dirender saat dibuka, sehingga selalu mulai dari kondisi segar */}
+      {showForm && (
+        <ExpenseForm
+          initialData={editing}
+          onSubmit={handleSubmit}
+          onClose={handleClose}
+        />
+      )}
     </>
   );
 }
