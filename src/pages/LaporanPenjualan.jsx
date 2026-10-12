@@ -1,10 +1,12 @@
 // src/pages/LaporanPenjualan.jsx
-// Langkah 3: laporan penjualan dari pembayaran yang berstatus paid
+// Langkah 5: laporan penjualan dari pembayaran yang berstatus paid, tabel transaksi dengan pagination
 import { useEffect, useState } from "react";
 import { Wallet, Receipt, TrendingUp } from "lucide-react";
 import { getSalesReport } from "../services/transactionService";
 import { METODE } from "../services/transactionMapper";
 import { toISO } from "../utils/booking";
+import Pagination from "../components/Pagination";
+import usePagination from "../components/hooks/usePagination";
 
 const rupiah = (n) => `Rp ${Number(n || 0).toLocaleString("id-ID")}`;
 
@@ -14,7 +16,7 @@ const pesanError = (err) =>
     ? "Tidak dapat terhubung ke server. Pastikan backend sudah berjalan."
     : err.message;
 
-// Langkah 3.1: rentang tanggal cepat
+// rentang tanggal cepat
 const bulanIni = () => {
   const n = new Date();
   return {
@@ -41,7 +43,7 @@ export default function LaporanPenjualan() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // Langkah 3.2: muat laporan setiap rentang berubah
+  // muat laporan setiap rentang berubah
   useEffect(() => {
     let batal = false; // cegah set state jika halaman sudah ditinggalkan
     setLoading(true);
@@ -63,14 +65,18 @@ export default function LaporanPenjualan() {
     };
   }, [rentang]);
 
-  // Langkah 3.3: terapkan tanggal dari kolom isian, kedua tanggal harus lengkap atau kosong
+  // terapkan tanggal dari kolom isian, kedua tanggal harus lengkap atau kosong
   const terapkan = () => {
     if (!!isian.from !== !!isian.to) {
-      setErrorRentang("Isi kedua tanggal, atau kosongkan keduanya untuk semua waktu.");
+      setErrorRentang(
+        "Isi kedua tanggal, atau kosongkan keduanya untuk semua waktu.",
+      );
       return;
     }
     if (isian.from && isian.from > isian.to) {
-      setErrorRentang("Tanggal awal tidak boleh lebih besar dari tanggal akhir.");
+      setErrorRentang(
+        "Tanggal awal tidak boleh lebih besar dari tanggal akhir.",
+      );
       return;
     }
     setErrorRentang("");
@@ -83,25 +89,40 @@ export default function LaporanPenjualan() {
     setRentang(r);
   };
 
-  const rataRata = laporan && laporan.totalTransaksi > 0 ? Math.round(laporan.totalOmzet / laporan.totalTransaksi) : 0;
+  const rataRata =
+    laporan && laporan.totalTransaksi > 0
+      ? Math.round(laporan.totalOmzet / laporan.totalTransaksi)
+      : 0;
   const metodeList = laporan ? Object.entries(laporan.perMetode) : [];
 
-  const tombol = "rounded-lg border border-gray-300 px-3 py-1 text-sm hover:bg-soft";
+  // Langkah 5.1: pagination tabel transaksi, kembali ke halaman 1 saat rentang tanggal berubah
+  const hal = usePagination(
+    laporan ? laporan.transaksi : [],
+    10,
+    `${rentang.from}|${rentang.to}`,
+  );
+
+  const tombol =
+    "rounded-lg border border-gray-300 px-3 py-1 text-sm hover:bg-soft";
   const inputTanggal =
     "rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent";
 
   return (
     <>
       <header className="border-b border-gray-200 bg-white px-6 py-4">
-        <h1 className="text-lg font-semibold text-primary">Laporan Penjualan</h1>
+        <h1 className="text-lg font-semibold text-primary">
+          Laporan Penjualan
+        </h1>
       </header>
 
       <main className="space-y-6 p-6">
-        {/* Langkah 3.4: filter tanggal */}
+        {/* filter tanggal */}
         <div className="rounded-xl bg-white p-5 shadow">
           <div className="flex flex-wrap items-end gap-3">
             <div>
-              <label className="mb-1 block text-xs font-bold text-slate-800">Dari</label>
+              <label className="mb-1 block text-xs font-bold text-slate-800">
+                Dari
+              </label>
               <input
                 type="date"
                 value={isian.from}
@@ -110,7 +131,9 @@ export default function LaporanPenjualan() {
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-bold text-slate-800">Sampai</label>
+              <label className="mb-1 block text-xs font-bold text-slate-800">
+                Sampai
+              </label>
               <input
                 type="date"
                 value={isian.to}
@@ -125,27 +148,54 @@ export default function LaporanPenjualan() {
               Terapkan
             </button>
             <div className="ml-auto flex flex-wrap gap-2">
-              <button onClick={() => pakai(bulanIni())} className={tombol}>Bulan Ini</button>
-              <button onClick={() => pakai(bulanLalu())} className={tombol}>Bulan Lalu</button>
-              <button onClick={() => pakai(semuaWaktu())} className={tombol}>Semua Waktu</button>
+              <button onClick={() => pakai(bulanIni())} className={tombol}>
+                Bulan Ini
+              </button>
+              <button onClick={() => pakai(bulanLalu())} className={tombol}>
+                Bulan Lalu
+              </button>
+              <button onClick={() => pakai(semuaWaktu())} className={tombol}>
+                Semua Waktu
+              </button>
             </div>
           </div>
-          {errorRentang && <p className="mt-2 text-xs text-red-600">{errorRentang}</p>}
+          {errorRentang && (
+            <p className="mt-2 text-xs text-red-600">{errorRentang}</p>
+          )}
         </div>
 
-        {error && <p className="rounded-lg bg-red-100 px-4 py-2 text-sm text-red-700">{error}</p>}
+        {error && (
+          <p className="rounded-lg bg-red-100 px-4 py-2 text-sm text-red-700">
+            {error}
+          </p>
+        )}
         {loading && <p className="text-sm text-gray-500">Memuat laporan...</p>}
 
         {!loading && !error && laporan && (
           <>
-            {/* Langkah 3.5: ringkasan */}
+            {/* ringkasan */}
             <section className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               {[
-                { judul: "Total Omzet", nilai: rupiah(laporan.totalOmzet), icon: Wallet },
-                { judul: "Jumlah Transaksi", nilai: String(laporan.totalTransaksi), icon: Receipt },
-                { judul: "Rata-rata per Transaksi", nilai: rupiah(rataRata), icon: TrendingUp },
+                {
+                  judul: "Total Omzet",
+                  nilai: rupiah(laporan.totalOmzet),
+                  icon: Wallet,
+                },
+                {
+                  judul: "Jumlah Transaksi",
+                  nilai: String(laporan.totalTransaksi),
+                  icon: Receipt,
+                },
+                {
+                  judul: "Rata-rata per Transaksi",
+                  nilai: rupiah(rataRata),
+                  icon: TrendingUp,
+                },
               ].map((k) => (
-                <div key={k.judul} className="flex items-center gap-4 rounded-xl bg-white p-5 shadow">
+                <div
+                  key={k.judul}
+                  className="flex items-center gap-4 rounded-xl bg-white p-5 shadow"
+                >
                   <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-soft text-primary">
                     <k.icon size={22} />
                   </span>
@@ -157,25 +207,38 @@ export default function LaporanPenjualan() {
               ))}
             </section>
 
-            {/* Langkah 3.6: rekap per metode pembayaran */}
+            {/* rekap per metode pembayaran */}
             <section className="rounded-xl bg-white p-5 shadow">
-              <h2 className="mb-3 text-base font-semibold text-primary">Rekap per Metode Pembayaran</h2>
+              <h2 className="mb-3 text-base font-semibold text-primary">
+                Rekap per Metode Pembayaran
+              </h2>
               {metodeList.length === 0 ? (
-                <p className="text-sm text-gray-500">Belum ada pembayaran pada periode ini.</p>
+                <p className="text-sm text-gray-500">
+                  Belum ada pembayaran pada periode ini.
+                </p>
               ) : (
                 <ul className="space-y-3">
                   {metodeList.map(([kode, nominal]) => {
-                    const persen = laporan.totalOmzet > 0 ? Math.round((nominal / laporan.totalOmzet) * 100) : 0;
+                    const persen =
+                      laporan.totalOmzet > 0
+                        ? Math.round((nominal / laporan.totalOmzet) * 100)
+                        : 0;
                     return (
                       <li key={kode}>
                         <div className="mb-1 flex justify-between text-sm">
-                          <span className="font-medium">{METODE[kode] || kode}</span>
+                          <span className="font-medium">
+                            {METODE[kode] || kode}
+                          </span>
                           <span>
-                            {rupiah(nominal)} <span className="text-gray-400">({persen}%)</span>
+                            {rupiah(nominal)}{" "}
+                            <span className="text-gray-400">({persen}%)</span>
                           </span>
                         </div>
                         <div className="h-2 rounded-full bg-soft">
-                          <div className="h-2 rounded-full bg-secondary" style={{ width: `${persen}%` }} />
+                          <div
+                            className="h-2 rounded-full bg-secondary"
+                            style={{ width: `${persen}%` }}
+                          />
                         </div>
                       </li>
                     );
@@ -184,32 +247,58 @@ export default function LaporanPenjualan() {
               )}
             </section>
 
-            {/* Langkah 3.7: daftar transaksi */}
+            {/* daftar transaksi dengan pagination */}
             <section className="rounded-xl bg-white p-5 shadow">
-              <h2 className="mb-3 text-base font-semibold text-primary">Daftar Transaksi</h2>
+              <h2 className="mb-3 text-base font-semibold text-primary">
+                Daftar Transaksi
+              </h2>
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm">
                   <thead className="bg-soft text-primary">
                     <tr>
-                      {["No Invoice", "Booking", "Waktu Bayar", "Metode", "Dibayar", "Catatan"].map((h) => (
-                        <th key={h} className="px-3 py-2">{h}</th>
+                      {[
+                        "No Invoice",
+                        "Booking",
+                        "Waktu Bayar",
+                        "Metode",
+                        "Dibayar",
+                        "Catatan",
+                      ].map((h) => (
+                        <th key={h} className="px-3 py-2">
+                          {h}
+                        </th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {laporan.transaksi.map((t) => (
-                      <tr key={t.id} className="border-b border-gray-100 last:border-0">
-                        <td className="px-3 py-2 font-mono text-xs">{t.invoice}</td>
-                        <td className="px-3 py-2 font-mono text-xs">{t.kodeBooking}</td>
+                    {/* Langkah 5.2: hanya baris di halaman aktif */}
+                    {hal.pageItems.map((t) => (
+                      <tr
+                        key={t.id}
+                        className="border-b border-gray-100 last:border-0"
+                      >
+                        <td className="px-3 py-2 font-mono text-xs">
+                          {t.invoice}
+                        </td>
+                        <td className="px-3 py-2 font-mono text-xs">
+                          {t.kodeBooking}
+                        </td>
                         <td className="px-3 py-2">{t.waktuBayar}</td>
                         <td className="px-3 py-2">{t.metode}</td>
-                        <td className="px-3 py-2 font-medium">{rupiah(t.dibayar)}</td>
-                        <td className="px-3 py-2 text-xs text-gray-500">{t.catatan}</td>
+                        <td className="px-3 py-2 font-medium">
+                          {rupiah(t.dibayar)}
+                        </td>
+                        <td className="px-3 py-2 text-xs text-gray-500">
+                          {t.catatan}
+                        </td>
                       </tr>
                     ))}
                     {laporan.transaksi.length === 0 && (
                       <tr>
-                        <td colSpan={6} className="py-6 text-center text-gray-500">
+                        <td
+                          colSpan={6}
+                          className="py-6 text-center text-gray-500"
+                        >
                           Tidak ada transaksi pada periode ini
                         </td>
                       </tr>
@@ -217,6 +306,10 @@ export default function LaporanPenjualan() {
                   </tbody>
                 </table>
               </div>
+
+              {/* Langkah 5.3: kontrol halaman */}
+              <Pagination {...hal} onChange={hal.setPage} />
+
               <p className="mt-3 text-xs text-gray-500">
                 Laporan hanya memuat pembayaran berstatus lunas (paid).
               </p>

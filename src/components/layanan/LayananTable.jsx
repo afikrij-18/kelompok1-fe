@@ -1,7 +1,9 @@
 // src/components/layanan/LayananTable.jsx
-// hanya tombol "Tambah Layanan" (kategori punya tab sendiri)
+// Langkah 3: tabel layanan dengan cari, filter kategori dari API, dan pagination
 import { useState } from "react";
 import { Search, Pencil, Trash2, Plus } from "lucide-react";
+import Pagination from "../Pagination";
+import usePagination from "../hooks/usePagination";
 
 // warna badge bergantian, karena kategori dinamis dari database
 const warnaKategori = [
@@ -12,7 +14,13 @@ const warnaKategori = [
   "bg-purple-100 text-purple-700",
 ];
 
-export default function LayananTable({ data, kategoriList, onAdd, onEdit, onDelete }) {
+export default function LayananTable({
+  data,
+  kategoriList,
+  onAdd,
+  onEdit,
+  onDelete,
+}) {
   const [keyword, setKeyword] = useState("");
   // "Semua" atau id kategori
   const [kategoriId, setKategoriId] = useState("Semua");
@@ -29,9 +37,14 @@ export default function LayananTable({ data, kategoriList, onAdd, onEdit, onDele
     return cocokKata && cocokKategori;
   });
 
+  // Langkah 3.1: 10 baris per halaman, kembali ke halaman 1 saat cari atau filter berubah
+  const hal = usePagination(rows, 10, `${keyword}|${kategoriId}`);
+
   const tombolFilter = (aktif) =>
     `rounded-lg border px-3 py-1 text-sm ${
-      aktif ? "border-primary bg-primary text-white" : "border-gray-300 hover:bg-soft"
+      aktif
+        ? "border-primary bg-primary text-white"
+        : "border-gray-300 hover:bg-soft"
     }`;
 
   return (
@@ -39,7 +52,10 @@ export default function LayananTable({ data, kategoriList, onAdd, onEdit, onDele
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-3">
           <div className="relative">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <Search
+              size={16}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+            />
             <input
               type="text"
               placeholder="Cari nama layanan..."
@@ -49,11 +65,18 @@ export default function LayananTable({ data, kategoriList, onAdd, onEdit, onDele
             />
           </div>
 
-          <button onClick={() => setKategoriId("Semua")} className={tombolFilter(kategoriId === "Semua")}>
+          <button
+            onClick={() => setKategoriId("Semua")}
+            className={tombolFilter(kategoriId === "Semua")}
+          >
             Semua
           </button>
           {kategoriList.map((k) => (
-            <button key={k.id} onClick={() => setKategoriId(k.id)} className={tombolFilter(kategoriId === k.id)}>
+            <button
+              key={k.id}
+              onClick={() => setKategoriId(k.id)}
+              className={tombolFilter(kategoriId === k.id)}
+            >
               {k.nama}
             </button>
           ))}
@@ -73,30 +96,50 @@ export default function LayananTable({ data, kategoriList, onAdd, onEdit, onDele
           <thead className="bg-soft text-primary">
             <tr>
               {["No", "Nama Layanan", "Kategori", "Harga", "Aksi"].map((h) => (
-                <th key={h} className="px-3 py-2">{h}</th>
+                <th key={h} className="px-3 py-2">
+                  {h}
+                </th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {rows.map((l, i) => (
-              <tr key={l.id} className="border-b border-gray-100 align-top last:border-0">
-                <td className="px-3 py-2">{i + 1}</td>
+            {/* Langkah 3.2: hanya baris di halaman aktif, nomor urut berlanjut antar halaman */}
+            {hal.pageItems.map((l, i) => (
+              <tr
+                key={l.id}
+                className="border-b border-gray-100 align-top last:border-0"
+              >
+                <td className="px-3 py-2">{hal.mulai + i + 1}</td>
                 <td className="px-3 py-2">
                   <p className="font-medium">{l.nama}</p>
-                  {l.deskripsi && <p className="text-xs text-gray-500">{l.deskripsi}</p>}
+                  {l.deskripsi && (
+                    <p className="text-xs text-gray-500">{l.deskripsi}</p>
+                  )}
                 </td>
                 <td className="px-3 py-2">
-                  <span className={`rounded-full px-2 py-0.5 text-xs ${warna(l.categoryId)}`}>
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-xs ${warna(l.categoryId)}`}
+                  >
                     {l.kategori}
                   </span>
                 </td>
-                <td className="px-3 py-2">Rp {l.harga.toLocaleString("id-ID")}</td>
+                <td className="px-3 py-2">
+                  Rp {l.harga.toLocaleString("id-ID")}
+                </td>
                 <td className="px-3 py-2">
                   <div className="flex gap-2">
-                    <button onClick={() => onEdit(l)} title="Edit" className="rounded p-1.5 text-secondary hover:bg-soft">
+                    <button
+                      onClick={() => onEdit(l)}
+                      title="Edit"
+                      className="rounded p-1.5 text-secondary hover:bg-soft"
+                    >
                       <Pencil size={16} />
                     </button>
-                    <button onClick={() => onDelete(l)} title="Hapus" className="rounded p-1.5 text-red-600 hover:bg-red-50">
+                    <button
+                      onClick={() => onDelete(l)}
+                      title="Hapus"
+                      className="rounded p-1.5 text-red-600 hover:bg-red-50"
+                    >
                       <Trash2 size={16} />
                     </button>
                   </div>
@@ -106,16 +149,17 @@ export default function LayananTable({ data, kategoriList, onAdd, onEdit, onDele
 
             {rows.length === 0 && (
               <tr>
-                <td colSpan={5} className="py-6 text-center text-gray-500">Layanan tidak ditemukan</td>
+                <td colSpan={5} className="py-6 text-center text-gray-500">
+                  Layanan tidak ditemukan
+                </td>
               </tr>
             )}
           </tbody>
         </table>
       </div>
 
-      <p className="mt-3 text-xs text-gray-500">
-        Menampilkan {rows.length} dari {data.length} layanan
-      </p>
+      {/* Langkah 3.3: kontrol halaman, menggantikan teks "Menampilkan x dari y layanan" */}
+      <Pagination {...hal} onChange={hal.setPage} />
     </div>
   );
 }
