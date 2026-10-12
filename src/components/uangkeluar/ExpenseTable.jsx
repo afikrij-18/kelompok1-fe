@@ -1,5 +1,5 @@
-// src/components/uangkeluar/ExpenseTable.jsx  (FE, BARU)
-// Langkah 7: tabel uang keluar dengan pencarian dan filter kategori
+// src/components/uangkeluar/ExpenseTable.jsx
+// Langkah 7: tabel uang keluar dengan pencarian, filter kategori, dan pagination
 import { useState } from "react";
 import { Search, Pencil, Trash2 } from "lucide-react";
 import {
@@ -9,6 +9,8 @@ import {
 } from "../../data/expenseOptions";
 import { formatRupiah } from "../../utils/booking";
 import { formatTanggalPendek } from "../../utils/pengeluaran";
+import Pagination from "../Pagination";
+import usePagination from "../hooks/usePagination";
 
 // Langkah 7.1: data = uang keluar pada periode terpilih, onEdit dan onDelete menerima satu data
 export default function ExpenseTable({ data, onEdit, onDelete }) {
@@ -25,6 +27,9 @@ export default function ExpenseTable({ data, onEdit, onDelete }) {
   });
 
   const totalTampil = rows.reduce((jumlah, e) => jumlah + e.jumlah, 0);
+
+  // Langkah 7.3: 10 baris per halaman, kembali ke halaman 1 saat cari atau kategori berubah
+  const hal = usePagination(rows, 10, `${keyword}|${kategori}`);
 
   return (
     <div className="rounded-xl bg-white p-5 shadow">
@@ -84,12 +89,13 @@ export default function ExpenseTable({ data, onEdit, onDelete }) {
             </tr>
           </thead>
           <tbody>
-            {rows.map((e, i) => (
+            {/* Langkah 7.4: hanya baris di halaman aktif, nomor urut berlanjut antar halaman */}
+            {hal.pageItems.map((e, i) => (
               <tr
                 key={e.id}
                 className="border-b border-gray-100 align-top last:border-0"
               >
-                <td className="px-3 py-2">{i + 1}</td>
+                <td className="px-3 py-2">{hal.mulai + i + 1}</td>
                 <td className="whitespace-nowrap px-3 py-2">
                   {formatTanggalPendek(e.tanggal)}
                 </td>
@@ -135,7 +141,7 @@ export default function ExpenseTable({ data, onEdit, onDelete }) {
               </tr>
             ))}
 
-            {/* Langkah 7.3: pesan kosong dibedakan, periode tanpa data atau hasil saringan kosong */}
+            {/* Langkah 7.5: pesan kosong dibedakan, periode tanpa data atau hasil saringan kosong */}
             {rows.length === 0 && (
               <tr>
                 <td colSpan={7} className="py-6 text-center text-gray-500">
@@ -149,10 +155,13 @@ export default function ExpenseTable({ data, onEdit, onDelete }) {
         </table>
       </div>
 
-      <p className="mt-3 text-xs text-gray-500">
-        Menampilkan {rows.length} dari {data.length} catatan, total{" "}
-        {formatRupiah(totalTampil)}
-      </p>
+      {/* Langkah 7.6: kontrol halaman, lalu total dari semua baris yang lolos saringan (bukan hanya halaman ini) */}
+      <Pagination {...hal} onChange={hal.setPage} />
+      {rows.length > 0 && (
+        <p className="mt-1 text-xs text-gray-500">
+          Total pengeluaran yang tampil: {formatRupiah(totalTampil)}
+        </p>
+      )}
     </div>
   );
 }

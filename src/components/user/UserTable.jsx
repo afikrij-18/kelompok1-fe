@@ -1,9 +1,11 @@
 // src/components/user/UserTable.jsx
-// Langkah 3: tabel user, filter role hanya Admin dan Owner
+// Langkah 1: tabel user dengan cari, filter role, dan pagination
 import { useState } from "react";
 import { Search, Pencil, Trash2, Plus, KeyRound } from "lucide-react";
+import Pagination from "../Pagination";
+import usePagination from "../hooks/usePagination";
 
-// Langkah 3.1: warna badge role, role tak dikenal memakai warna abu-abu
+// warna badge role, role tak dikenal memakai warna abu-abu
 const roleColor = {
   Admin: "bg-primary text-white",
   Owner: "bg-accent text-white",
@@ -15,7 +17,13 @@ const statusColor = {
 
 const roles = ["Semua", "Admin", "Owner"];
 
-export default function UserTable({ data, onAdd, onEdit, onDelete, onChangePassword }) {
+export default function UserTable({
+  data,
+  onAdd,
+  onEdit,
+  onDelete,
+  onChangePassword,
+}) {
   const [keyword, setKeyword] = useState("");
   const [role, setRole] = useState("Semua");
 
@@ -27,12 +35,18 @@ export default function UserTable({ data, onAdd, onEdit, onDelete, onChangePassw
     return cocokKata && cocokRole;
   });
 
+  // Langkah 1.1: 10 baris per halaman, kembali ke halaman 1 saat cari atau filter berubah
+  const hal = usePagination(rows, 10, `${keyword}|${role}`);
+
   return (
     <div className="rounded-xl bg-white p-5 shadow">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-3">
           <div className="relative">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <Search
+              size={16}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+            />
             <input
               type="text"
               placeholder="Cari nama atau email..."
@@ -47,7 +61,9 @@ export default function UserTable({ data, onAdd, onEdit, onDelete, onChangePassw
               key={r}
               onClick={() => setRole(r)}
               className={`rounded-lg border px-3 py-1 text-sm ${
-                role === r ? "border-primary bg-primary text-white" : "border-gray-300 hover:bg-soft"
+                role === r
+                  ? "border-primary bg-primary text-white"
+                  : "border-gray-300 hover:bg-soft"
               }`}
             >
               {r}
@@ -68,25 +84,36 @@ export default function UserTable({ data, onAdd, onEdit, onDelete, onChangePassw
         <table className="w-full text-left text-sm">
           <thead className="bg-soft text-primary">
             <tr>
-              {["No", "Nama", "Email", "Telepon", "Role", "Status", "Aksi"].map((h) => (
-                <th key={h} className="px-3 py-2">{h}</th>
-              ))}
+              {["No", "Nama", "Email", "Telepon", "Role", "Status", "Aksi"].map(
+                (h) => (
+                  <th key={h} className="px-3 py-2">
+                    {h}
+                  </th>
+                ),
+              )}
             </tr>
           </thead>
           <tbody>
-            {rows.map((u, i) => (
+            {/* Langkah 1.2: hanya baris di halaman aktif, nomor urut berlanjut antar halaman */}
+            {hal.pageItems.map((u, i) => (
               <tr key={u.id} className="border-b border-gray-100 last:border-0">
-                <td className="px-3 py-2">{i + 1}</td>
+                <td className="px-3 py-2">{hal.mulai + i + 1}</td>
                 <td className="px-3 py-2 font-medium">{u.nama}</td>
                 <td className="px-3 py-2">{u.email}</td>
                 <td className="px-3 py-2">{u.telepon}</td>
                 <td className="px-3 py-2">
-                  <span className={`rounded-full px-2 py-0.5 text-xs ${roleColor[u.role] || "bg-gray-100 text-gray-600"}`}>
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-xs ${roleColor[u.role] || "bg-gray-100 text-gray-600"}`}
+                  >
                     {u.role || "Role tidak dikenal"}
                   </span>
                 </td>
                 <td className="px-3 py-2">
-                  <span className={`rounded-full px-2 py-0.5 text-xs ${statusColor[u.status]}`}>{u.status}</span>
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-xs ${statusColor[u.status]}`}
+                  >
+                    {u.status}
+                  </span>
                 </td>
                 <td className="px-3 py-2">
                   <div className="flex gap-2">
@@ -128,9 +155,8 @@ export default function UserTable({ data, onAdd, onEdit, onDelete, onChangePassw
         </table>
       </div>
 
-      <p className="mt-3 text-xs text-gray-500">
-        Menampilkan {rows.length} dari {data.length} user
-      </p>
+      {/* Langkah 1.3: kontrol halaman, menggantikan teks "Menampilkan x dari y user" */}
+      <Pagination {...hal} onChange={hal.setPage} />
     </div>
   );
 }

@@ -1,3 +1,5 @@
+// src/pages/BookingDetail.jsx
+// Langkah 2: detail booking dengan pembayaran bertahap, cetak invoice per transaksi, dan cetak detail
 import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import {
@@ -13,12 +15,25 @@ import {
   AlertCircle,
   Wallet,
   Printer,
-  FileText,
+  Clock,
+  XCircle,
 } from "lucide-react";
 import { getBookingById } from "../services/bookingService";
 import { createTransaction } from "../services/transactionService";
-import { METODE, METODE_OPSI } from "../services/transactionMapper";
+import {
+  METODE,
+  METODE_OPSI,
+  formatWaktu,
+} from "../services/transactionMapper";
 import { formatRupiah } from "../utils/booking";
+import {
+  BANK_OPSI,
+  hitungPembayaran,
+  susunCatatanBayar,
+} from "../utils/pembayaran";
+import { cetakDokumen } from "../utils/cetak";
+import { dokumenInvoice, dokumenDetailBooking } from "../utils/cetakBooking";
+import CetakBookingDialog from "../components/booking/CetakBookingDialog";
 
 const pesanError = (err) =>
   err instanceof TypeError
@@ -32,7 +47,41 @@ const badgeColor = {
   Dibatalkan: "bg-red-100 text-red-700",
 };
 
-const BANK_OPSI = ["BCA", "Mandiri", "BNI", "BRI"];
+// Langkah 2.1: tampilan tiap status transaksi
+const TAMPIL_TRANSAKSI = {
+  paid: {
+    kotak: "border-green-200 bg-green-50",
+    teks: "text-green-700",
+    label: "Diterima",
+    icon: CheckCircle2,
+  },
+  pending: {
+    kotak: "border-amber-200 bg-amber-50",
+    teks: "text-amber-700",
+    label: "Menunggu",
+    icon: Clock,
+  },
+  failed: {
+    kotak: "border-red-200 bg-red-50",
+    teks: "text-red-700",
+    label: "Gagal",
+    icon: XCircle,
+  },
+};
+
+// Langkah 2.2: bentuk transaksi yang dipakai dokumen cetak (sama dengan transactionMapper)
+const bentukCetak = (t) => ({
+  id: t.id,
+  invoice: t.invoice,
+  waktuBayar: formatWaktu(t.tanggal),
+  metode: METODE[t.metode] || t.metode,
+  dibayar: t.jumlah,
+  status: t.status,
+  catatan: t.catatan,
+});
+
+const inputClass =
+  "w-full rounded-lg border border-soft bg-white px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-2 focus:ring-accent/40";
 
 export default function BookingDetail() {
   const { id } = useParams();
@@ -42,9 +91,16 @@ export default function BookingDetail() {
   const [error, setError] = useState("");
 
   const [showBayar, setShowBayar] = useState(false);
-  const [bayar, setBayar] = useState({ metode: "cash", bank: "BCA", catatan: "" });
+  const [bayar, setBayar] = useState({
+    metode: "cash",
+    bank: BANK_OPSI[0],
+    jumlah: "",
+    catatan: "",
+  });
+  const [errBayar, setErrBayar] = useState("");
   const [saving, setSaving] = useState(false);
   const [pesan, setPesan] = useState(null);
+  const [showCetak, setShowCetak] = useState(false);
 
   const fetchData = () => {
     setLoading(true);
@@ -59,25 +115,52 @@ export default function BookingDetail() {
     fetchData();
   }, [id]);
 
-  const totalDibayar = booking ? (booking.totalDibayar ?? (booking.transaksi || []).reduce((j, t) => j + Number(t.jumlah || 0), 0)) : 0;
-  const sisa = booking ? Math.max(0, booking.total - totalDibayar) : 0;
-  const isPaid = booking ? booking.paid || sisa === 0 : false;
+  // Langkah 2.3: satu sumber kebenaran untuk status pembayaran
+  const transaksi = booking ? booking.transaksi || [] : [];
+  const pay = booking ? hitungPembayaran(booking.total, transaksi) : null;
+  const isPaid = pay ? pay.status === "Lunas" : false;
+  const dibatalkan = booking ? booking.status === "Dibatalkan" : false;
 
+  // Langkah 2.4: buka form pembayaran, jumlah awal = sisa tagihan
+  const bukaBayar = () => {
+    setErrBayar("");
+    setBayar((b) => ({ ...b, jumlah: String(pay.sisa) }));
+    setShowBayar(true);
+  };
+
+  // Langkah 2.5: simpan pembayaran, jumlah harus bilangan bulat dan tidak melebihi sisa
   const handleBayar = async () => {
-    if (sisa <= 0) return;
+    const nominal = Number(bayar.jumlah);
+    if (!bayar.jumlah || !Number.isInteger(nominal) || nominal <= 0) {
+      setErrBayar("Jumlah harus berupa angka bulat lebih dari 0");
+      return;
+    }
+    if (nominal > pay.sisa) {
+      setErrBayar(`Jumlah melebihi sisa tagihan (${formatRupiah(pay.sisa)})`);
+      return;
+    }
+
     setSaving(true);
     setPesan(null);
+    setErrBayar("");
     try {
-      const catatanBayar =
-        bayar.metode === "transfer_bank" ? `Transfer ${bayar.bank} - ${bayar.catatan}`.trim() : bayar.catatan.trim();
       await createTransaction({
         bookingId: booking.id,
         metode: bayar.metode,
-        jumlah: sisa,
-        catatan: catatanBayar || undefined,
+        jumlah: nominal,
+        catatan: susunCatatanBayar(bayar) || undefined,
       });
-      setPesan({ tipe: "sukses", teks: `Pembayaran ${formatRupiah(sisa)} tercatat.` });
+
+      const sisaBaru = pay.sisa - nominal;
+      setPesan({
+        tipe: "sukses",
+        teks:
+          sisaBaru === 0
+            ? `Pembayaran ${formatRupiah(nominal)} tercatat. Tagihan lunas.`
+            : `Pembayaran ${formatRupiah(nominal)} tercatat. Sisa tagihan ${formatRupiah(sisaBaru)}.`,
+      });
       setShowBayar(false);
+      setBayar((b) => ({ ...b, jumlah: "", catatan: "" }));
       fetchData();
     } catch (err) {
       setPesan({ tipe: "error", teks: pesanError(err) });
@@ -86,15 +169,38 @@ export default function BookingDetail() {
     }
   };
 
-  // Untuk warna hijau/merah di Ringkasan Biaya: anggap layanan dibayar berurutan.
-  // unit tercover penuh -> hijau, belum -> merah, sebagian -> hijau sebagian (tampilkan sisa).
+  // Langkah 2.6: cetak invoice untuk satu transaksi
+  const cetakInvoice = (t) => {
+    cetakDokumen({
+      judul: `Invoice ${t.invoice}`,
+      isi: dokumenInvoice({
+        booking,
+        transaksi: bentukCetak(t),
+        semuaTransaksi: transaksi.map(bentukCetak),
+      }),
+    });
+  };
+
+  // Langkah 2.7: cetak detail booking sesuai keperluan yang dipilih di dialog
+  const cetakDetail = (jenis) => {
+    cetakDokumen({
+      judul: `Detail Booking ${booking.kode}`,
+      isi: dokumenDetailBooking({
+        booking,
+        transaksi: transaksi.map(bentukCetak),
+        jenis,
+      }),
+    });
+  };
+
+  // Langkah 2.8: untuk warna hijau atau merah di Ringkasan Biaya, anggap layanan dibayar berurutan
   const paidPerUnit = (() => {
-    let remainingPaid = totalDibayar;
+    let sisaTerbayar = pay ? pay.dibayar : 0;
     return (booking?.items || []).map((u) => {
       const harga = Number(u.harga || 0);
-      const covered = Math.min(harga, remainingPaid);
-      remainingPaid -= covered;
-      return { harga, covered, belum: Math.max(0, harga - covered), lunas: covered >= harga };
+      const covered = Math.min(harga, sisaTerbayar);
+      sisaTerbayar -= covered;
+      return { harga, covered, lunas: harga > 0 && covered >= harga };
     });
   })();
 
@@ -109,8 +215,13 @@ export default function BookingDetail() {
   if (error) {
     return (
       <div className="p-6">
-        <p className="mb-4 rounded-lg bg-red-100 px-4 py-2 text-sm text-red-700">{error}</p>
-        <button onClick={() => navigate("/booking")} className="text-sm text-primary hover:underline">
+        <p className="mb-4 rounded-lg bg-red-100 px-4 py-2 text-sm text-red-700">
+          {error}
+        </p>
+        <button
+          onClick={() => navigate("/booking")}
+          className="text-sm text-primary hover:underline"
+        >
           ← Kembali ke Daftar Booking
         </button>
       </div>
@@ -121,7 +232,7 @@ export default function BookingDetail() {
 
   return (
     <>
-      <header className="flex items-center gap-3 border-b border-gray-200 bg-white px-6 py-4">
+      <header className="flex flex-wrap items-center gap-3 border-b border-gray-200 bg-white px-6 py-4">
         <button
           onClick={() => navigate("/booking")}
           className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50"
@@ -134,13 +245,35 @@ export default function BookingDetail() {
             {booking.kode} • {booking.jadwal} WIB
           </p>
         </div>
-        <div className="ml-auto flex items-center gap-2">
-          {sisa > 0 && (
-            <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-bold text-red-700">Kurang {formatRupiah(sisa)}</span>
+        <div className="ml-auto flex flex-wrap items-center gap-2">
+          {pay.sisa > 0 && pay.dibayar > 0 && (
+            <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-700">
+              Sebagian
+            </span>
           )}
-          <span className={`rounded-full px-3 py-1 text-xs font-bold ${badgeColor[booking.status] || "bg-gray-100 text-gray-700"}`}>
+          {pay.sisa > 0 && (
+            <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-bold text-red-700">
+              Kurang {formatRupiah(pay.sisa)}
+            </span>
+          )}
+          {pay.lebih > 0 && (
+            <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-bold text-blue-700">
+              Lebih bayar {formatRupiah(pay.lebih)}
+            </span>
+          )}
+          <span
+            className={`rounded-full px-3 py-1 text-xs font-bold ${badgeColor[booking.status] || "bg-gray-100 text-gray-700"}`}
+          >
             {booking.status}
           </span>
+          {/* Langkah 2.9: cetak detail booking, keperluannya dipilih di dialog */}
+          <button
+            type="button"
+            onClick={() => setShowCetak(true)}
+            className="flex items-center gap-2 rounded-lg border border-primary px-3 py-1.5 text-xs font-bold text-primary hover:bg-soft"
+          >
+            <Printer size={14} /> Cetak Detail
+          </button>
         </div>
       </header>
 
@@ -164,7 +297,9 @@ export default function BookingDetail() {
                 Pelanggan & Lokasi
               </h2>
               <div className="rounded-lg bg-soft/30 p-4">
-                <p className="text-base font-bold text-primary">{booking.pelanggan}</p>
+                <p className="text-base font-bold text-primary">
+                  {booking.pelanggan}
+                </p>
                 <p className="text-sm text-slate-700">
                   WhatsApp: <strong>{booking.telepon}</strong>
                 </p>
@@ -173,13 +308,23 @@ export default function BookingDetail() {
                 <MapPin size={16} className="mt-0.5 shrink-0 text-gray-400" />
                 <span>
                   {booking.labelAlamat && (
-                    <span className="mr-1 rounded bg-soft px-1.5 py-0.5 text-xs font-bold text-primary">{booking.labelAlamat}</span>
+                    <span className="mr-1 rounded bg-soft px-1.5 py-0.5 text-xs font-bold text-primary">
+                      {booking.labelAlamat}
+                    </span>
                   )}
                   {booking.alamat}
                 </span>
               </p>
-              {booking.catatanLokasi && <p className="mt-1 pl-6 text-xs text-slate-400">Patokan: {booking.catatanLokasi}</p>}
-              {booking.catatan && <p className="mt-2 text-xs italic text-slate-500">Catatan booking: {booking.catatan}</p>}
+              {booking.catatanLokasi && (
+                <p className="mt-1 pl-6 text-xs text-slate-400">
+                  Patokan: {booking.catatanLokasi}
+                </p>
+              )}
+              {booking.catatan && (
+                <p className="mt-2 text-xs italic text-slate-500">
+                  Catatan booking: {booking.catatan}
+                </p>
+              )}
             </div>
 
             <div className="rounded-xl border border-soft bg-white p-5 shadow">
@@ -200,16 +345,23 @@ export default function BookingDetail() {
                         <span
                           className={`mr-2 rounded px-2 py-0.5 text-xs ${paidPerUnit[i]?.lunas ? "bg-green-100 text-green-700" : "bg-primary/10 text-primary"}`}
                         >
-                          Unit #{i + 1} {paidPerUnit[i]?.lunas ? "(Lunas)" : sisa === 0 ? "(Lunas)" : "(Belum)"}
+                          Unit #{i + 1}{" "}
+                          {paidPerUnit[i]?.lunas ? "(Lunas)" : "(Belum)"}
                         </span>
                         {u.layanan}
                       </p>
-                      <p className="shrink-0 text-xs font-bold text-slate-900">{formatRupiah(u.harga)}</p>
+                      <p className="shrink-0 text-xs font-bold text-slate-900">
+                        {formatRupiah(u.harga)}
+                      </p>
                     </div>
                     <p className="mt-1 text-xs text-slate-600">
                       {u.merek} {u.kapasitas} ({u.tipe}) • Lokasi: {u.unit}
                     </p>
-                    {u.catatan && <p className="mt-1 text-xs italic text-slate-400">Keluhan: {u.catatan}</p>}
+                    {u.catatan && (
+                      <p className="mt-1 text-xs italic text-slate-400">
+                        Keluhan: {u.catatan}
+                      </p>
+                    )}
                   </div>
                 ))}
               </div>
@@ -223,7 +375,9 @@ export default function BookingDetail() {
                 Jadwal Kedatangan
               </h2>
               <div className="rounded-lg bg-soft/30 p-4">
-                <p className="text-base font-bold text-primary">{booking.jadwal} WIB</p>
+                <p className="text-base font-bold text-primary">
+                  {booking.jadwal} WIB
+                </p>
                 <p className="text-xs text-slate-500">
                   Tanggal: {booking.tanggal} • Jam: {booking.jam} WIB
                 </p>
@@ -238,7 +392,7 @@ export default function BookingDetail() {
             </Link>
           </div>
 
-          {/* KANAN: Detail Pembayaran + Ringkasan Biaya (sticky) */}
+          {/* KANAN: Detail Pembayaran dan Ringkasan Biaya */}
           <aside className="space-y-6 lg:sticky lg:top-6">
             <div className="rounded-xl border border-secondary/30 bg-white p-5 shadow">
               <h2 className="mb-3 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-slate-900">
@@ -247,58 +401,114 @@ export default function BookingDetail() {
                 </span>
                 Detail Pembayaran
               </h2>
+
               <div
-                className={`mb-4 rounded-lg p-3 ${isPaid ? "bg-green-50 border border-green-200" : "bg-amber-50 border border-amber-200"}`}
+                className={`mb-4 rounded-lg border p-3 ${isPaid ? "border-green-200 bg-green-50" : "border-amber-200 bg-amber-50"}`}
               >
-                <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Sisa Tagihan Belum Dibayar</p>
-                <p className={`text-2xl font-bold ${isPaid ? "text-green-700" : "text-red-600"}`}>{isPaid ? "LUNAS" : formatRupiah(sisa)}</p>
-                {!isPaid && (
-                  <p className="mt-1 text-xs text-slate-500">
-                    Total {formatRupiah(booking.total)} • Sudah dibayar {formatRupiah(totalDibayar)}
-                  </p>
-                )}
+                <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                  Sisa Tagihan Belum Dibayar
+                </p>
+                <p
+                  className={`text-2xl font-bold ${isPaid ? "text-green-700" : "text-red-600"}`}
+                >
+                  {isPaid ? "LUNAS" : formatRupiah(pay.sisa)}
+                </p>
+                <p className="mt-1 text-xs text-slate-500">
+                  Total {formatRupiah(booking.total)} • Sudah dibayar{" "}
+                  {formatRupiah(pay.dibayar)}
+                </p>
               </div>
 
-              {booking.transaksi.length > 0 && (
+              {/* Langkah 2.10: riwayat transaksi, tiap transaksi punya tombol cetak invoice */}
+              {transaksi.length > 0 && (
                 <div className="mb-4 space-y-2">
-                  {booking.transaksi.map((t) => (
-                    <div key={t.id} className="rounded-lg border border-green-200 bg-green-50 p-3">
-                      <p className="flex items-center gap-2 text-sm font-bold text-green-700">
-                        <CheckCircle2 size={16} /> {formatRupiah(t.jumlah)}
-                      </p>
-                      <div className="mt-1 space-y-1 text-xs text-slate-600">
-                        <p>
-                          Metode: <strong className="text-slate-900">{METODE[t.metode] || t.metode}</strong> • Invoice{" "}
-                          <strong className="font-mono text-slate-900">{t.invoice}</strong>
-                        </p>
-                        {t.tanggal && (
-                          <p>Tanggal: {new Date(t.tanggal).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" })}</p>
+                  {transaksi.map((t) => {
+                    const tampil =
+                      TAMPIL_TRANSAKSI[t.status] || TAMPIL_TRANSAKSI.pending;
+                    const Ikon = tampil.icon;
+                    return (
+                      <div
+                        key={t.id}
+                        className={`rounded-lg border p-3 ${tampil.kotak}`}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <p
+                            className={`flex items-center gap-2 text-sm font-bold ${tampil.teks}`}
+                          >
+                            <Ikon size={16} /> {formatRupiah(t.jumlah)}
+                          </p>
+                          <span
+                            className={`rounded-full bg-white/70 px-2 py-0.5 text-[10px] font-bold uppercase ${tampil.teks}`}
+                          >
+                            {tampil.label}
+                          </span>
+                        </div>
+                        <div className="mt-1 space-y-1 text-xs text-slate-600">
+                          <p>
+                            Metode:{" "}
+                            <strong className="text-slate-900">
+                              {METODE[t.metode] || t.metode}
+                            </strong>{" "}
+                            • Invoice{" "}
+                            <strong className="font-mono text-slate-900">
+                              {t.invoice}
+                            </strong>
+                          </p>
+                          {t.tanggal && (
+                            <p>Tanggal: {formatWaktu(t.tanggal)}</p>
+                          )}
+                        </div>
+                        {t.catatan && (
+                          <p className="mt-2 border-t border-black/10 pt-2 text-xs italic text-slate-500">
+                            Catatan: {t.catatan}
+                          </p>
                         )}
+                        <button
+                          type="button"
+                          onClick={() => cetakInvoice(t)}
+                          className="mt-2 flex items-center gap-1.5 text-xs font-bold text-primary hover:underline"
+                        >
+                          <Printer size={13} /> Cetak Invoice
+                        </button>
                       </div>
-                      {t.catatan && <p className="mt-2 border-t border-green-200 pt-2 text-xs italic text-slate-500">Catatan: {t.catatan}</p>}
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
 
-              {!isPaid ? (
+              {/* Langkah 2.11: tombol bayar, hilang saat lunas atau dibatalkan */}
+              {isPaid ? (
+                <div className="flex items-center gap-2 rounded-lg bg-soft/40 px-3 py-2 text-xs text-slate-500">
+                  <Wallet size={14} /> Tagihan sudah lunas, tidak perlu bayar
+                  lagi.
+                </div>
+              ) : dibatalkan ? (
+                <div className="flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">
+                  <AlertCircle size={14} /> Booking dibatalkan, pembayaran tidak
+                  dapat dicatat.
+                </div>
+              ) : (
                 <div>
                   {!showBayar ? (
                     <button
                       type="button"
-                      onClick={() => setShowBayar(true)}
+                      onClick={bukaBayar}
                       className="w-full rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-white hover:bg-secondary"
                     >
-                      Bayar {formatRupiah(sisa)}
+                      Catat Pembayaran
                     </button>
                   ) : (
                     <div className="space-y-3 rounded-lg border border-soft bg-soft/20 p-4">
                       <div>
-                        <label className="mb-1 block text-xs font-bold text-slate-700">Metode Pembayaran</label>
+                        <label className="mb-1 block text-xs font-bold text-slate-700">
+                          Metode Pembayaran
+                        </label>
                         <select
                           value={bayar.metode}
-                          onChange={(e) => setBayar({ ...bayar, metode: e.target.value })}
-                          className="w-full rounded-lg border border-soft bg-white px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-2 focus:ring-accent/40"
+                          onChange={(e) =>
+                            setBayar({ ...bayar, metode: e.target.value })
+                          }
+                          className={inputClass}
                         >
                           {METODE_OPSI.map((m) => (
                             <option key={m.value} value={m.value}>
@@ -310,11 +520,15 @@ export default function BookingDetail() {
 
                       {bayar.metode === "transfer_bank" && (
                         <div>
-                          <label className="mb-1 block text-xs font-bold text-slate-700">Bank Tujuan</label>
+                          <label className="mb-1 block text-xs font-bold text-slate-700">
+                            Bank Tujuan
+                          </label>
                           <select
                             value={bayar.bank}
-                            onChange={(e) => setBayar({ ...bayar, bank: e.target.value })}
-                            className="w-full rounded-lg border border-soft bg-white px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-2 focus:ring-accent/40"
+                            onChange={(e) =>
+                              setBayar({ ...bayar, bank: e.target.value })
+                            }
+                            className={inputClass}
                           >
                             {BANK_OPSI.map((b) => (
                               <option key={b} value={b}>
@@ -326,15 +540,75 @@ export default function BookingDetail() {
                       )}
 
                       <div>
-                        <label className="mb-1 block text-xs font-bold text-slate-700">Catatan (opsional)</label>
+                        <div className="mb-1 flex items-center justify-between">
+                          <label className="text-xs font-bold text-slate-700">
+                            Jumlah Dibayar (Rp)
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setErrBayar("");
+                              setBayar({ ...bayar, jumlah: String(pay.sisa) });
+                            }}
+                            className="text-[11px] font-bold text-secondary hover:underline"
+                          >
+                            Lunasi sisa
+                          </button>
+                        </div>
+                        <input
+                          type="number"
+                          min="1"
+                          max={pay.sisa}
+                          value={bayar.jumlah}
+                          onChange={(e) => {
+                            setErrBayar("");
+                            setBayar({ ...bayar, jumlah: e.target.value });
+                          }}
+                          className={`${inputClass} ${errBayar ? "border-red-500" : ""}`}
+                        />
+                        {errBayar ? (
+                          <p className="mt-1 text-xs text-red-600">
+                            {errBayar}
+                          </p>
+                        ) : (
+                          <p className="mt-1 text-xs text-slate-400">
+                            Boleh kurang dari sisa (DP atau cicilan), maksimal{" "}
+                            {formatRupiah(pay.sisa)}.
+                          </p>
+                        )}
+                      </div>
+
+                      <div>
+                        <label className="mb-1 block text-xs font-bold text-slate-700">
+                          Catatan (opsional)
+                        </label>
                         <input
                           type="text"
-                          placeholder={bayar.metode === "transfer_bank" ? "No. referensi / keterangan" : "Catatan pembayaran"}
+                          placeholder={
+                            bayar.metode === "transfer_bank"
+                              ? "No. referensi / keterangan"
+                              : "Catatan pembayaran"
+                          }
                           value={bayar.catatan}
-                          onChange={(e) => setBayar({ ...bayar, catatan: e.target.value })}
-                          className="w-full rounded-lg border border-soft bg-white px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-2 focus:ring-accent/40"
+                          onChange={(e) =>
+                            setBayar({ ...bayar, catatan: e.target.value })
+                          }
+                          className={inputClass}
                         />
                       </div>
+
+                      {/* peringatan: backend mengubah status booking menjadi Selesai saat tagihan lunas */}
+                      {Number(bayar.jumlah) === pay.sisa &&
+                        booking.status !== "Selesai" && (
+                          <p className="flex items-start gap-1.5 rounded-lg bg-amber-50 p-2 text-xs text-amber-800">
+                            <AlertCircle
+                              size={14}
+                              className="mt-0.5 shrink-0"
+                            />
+                            Melunasi tagihan membuat sistem mengubah status
+                            booking menjadi Selesai.
+                          </p>
+                        )}
 
                       <div className="flex gap-2 pt-1">
                         <button
@@ -343,7 +617,7 @@ export default function BookingDetail() {
                           disabled={saving}
                           className="flex-1 rounded-lg bg-primary px-4 py-2 text-sm font-bold text-white hover:bg-secondary disabled:opacity-60"
                         >
-                          {saving ? "Menyimpan..." : `Simpan Lunas ${formatRupiah(sisa)}`}
+                          {saving ? "Menyimpan..." : "Simpan Pembayaran"}
                         </button>
                         <button
                           type="button"
@@ -356,143 +630,81 @@ export default function BookingDetail() {
                       </div>
                     </div>
                   )}
-                  <p className="mt-2 flex items-center gap-1.5 text-xs text-slate-500">
-                    <AlertCircle size={14} /> Menyetor sebesar sisa tagihan menambah saldo lunas.
-                  </p>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2 rounded-lg bg-soft/40 px-3 py-2 text-xs text-slate-500">
-                  <Wallet size={14} /> Tagihan sudah lunas — tidak perlu bayar lagi.
                 </div>
               )}
             </div>
 
-            {/* Ringkasan Biaya: hijau = sudah dibayar, merah = belum dibayar, total = sisa */}
+            {/* Ringkasan Biaya: hijau = sudah dibayar, merah = belum dibayar */}
             <div className="rounded-xl border border-soft bg-white p-5 shadow">
               <h2 className="mb-3 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-slate-900">
                 <Receipt size={18} className="text-secondary" /> Ringkasan Biaya
               </h2>
 
-              {isPaid && booking.status === "Selesai" && (
-                <div className="mb-4 rounded-lg border border-secondary/30 bg-soft/20 p-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <div>
-                      <p className="text-xs font-bold uppercase text-primary">Invoice Resmi</p>
-                      <p className="font-mono text-xs text-slate-600">No: INV/{booking.kode}</p>
-                    </div>
-                    <span className="rounded bg-green-100 px-2 py-0.5 text-[10px] font-bold text-green-700">LUNAS & SELESAI</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const printWindow = window.open("", "_blank");
-                      printWindow.document.write(`
-                        <html>
-                          <head>
-                            <title>Invoice - ${booking.kode}</title>
-                            <style>
-                              body { font-family: sans-serif; padding: 24px; color: #333; }
-                              .header { display: flex; justify-content: space-between; border-bottom: 2px solid #ddd; padding-bottom: 12px; margin-bottom: 16px; }
-                              .title { font-size: 20px; font-weight: bold; color: #1e3a8a; }
-                              table { width: 100%; border-collapse: collapse; margin-top: 16px; }
-                              th, td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; font-size: 13px; }
-                              th { background: #f3f4f6; }
-                              .text-right { text-align: right; }
-                              .footer { margin-top: 24px; text-align: right; font-weight: bold; }
-                            </style>
-                          </head>
-                          <body>
-                            <div class="header">
-                              <div>
-                                <div class="title">INVOICE SERVIS AC</div>
-                                <div style="font-size: 12px; color: #666; font-family: monospace;">No. Reg: ${booking.kode}</div>
-                              </div>
-                              <div style="text-align: right; font-size: 12px;">
-                                <div>Tanggal: ${booking.tanggal}</div>
-                                <div>Status: <strong>LUNAS & SELESAI</strong></div>
-                              </div>
-                            </div>
-                            <div style="margin-bottom: 16px; font-size: 13px;">
-                              <strong>Kepada:</strong> ${booking.pelanggan} (${booking.telepon})<br/>
-                              <strong>Alamat:</strong> ${booking.alamat}
-                            </div>
-                            <table>
-                              <thead>
-                                <tr>
-                                  <th>No</th>
-                                  <th>Layanan & Unit</th>
-                                  <th>Detail AC</th>
-                                  <th class="text-right">Harga</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                ${booking.items.map((u, i) => `
-                                  <tr>
-                                    <td>${i + 1}</td>
-                                    <td><strong>${u.layanan}</strong></td>
-                                    <td>${u.merek} ${u.kapasitas} (${u.tipe}) - Lokasi: ${u.unit}</td>
-                                    <td class="text-right">${formatRupiah(u.harga)}</td>
-                                  </tr>
-                                `).join("")}
-                              </tbody>
-                            </table>
-                            <div class="footer">
-                              <div>Total Tagihan: ${formatRupiah(booking.total)}</div>
-                              <div style="color: #16a34a;">Status Pembayaran: LUNAS</div>
-                            </div>
-                          </body>
-                        </html>
-                      `);
-                      printWindow.document.close();
-                      printWindow.print();
-                    }}
-                    className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-bold text-white hover:bg-secondary"
-                  >
-                    <Printer size={14} /> Cetak Invoice (No. Reg: {booking.kode})
-                  </button>
-                </div>
-              )}
-
               <div className="space-y-2 text-sm">
                 {booking.items.map((u, i) => {
-                  const info = paidPerUnit[i];
-                  const isGreen = info.lunas;
+                  const lunas = paidPerUnit[i]?.lunas;
                   return (
                     <div
                       key={u.id}
-                      className={`flex justify-between gap-2 rounded-lg border px-3 py-2 ${isGreen ? "border-green-200 bg-green-50 text-green-800" : "border-red-200 bg-red-50 text-red-700"}`}
+                      className={`flex justify-between gap-2 rounded-lg border px-3 py-2 ${lunas ? "border-green-200 bg-green-50 text-green-800" : "border-red-200 bg-red-50 text-red-700"}`}
                     >
                       <span className="flex items-center gap-2 truncate">
-                        <span className={`h-2 w-2 shrink-0 rounded-full ${isGreen ? "bg-green-500" : "bg-red-500"}`} />
+                        <span
+                          className={`h-2 w-2 shrink-0 rounded-full ${lunas ? "bg-green-500" : "bg-red-500"}`}
+                        />
                         {u.layanan} (#{i + 1})
                       </span>
-                      <span className="shrink-0 font-bold">{formatRupiah(u.harga)}</span>
+                      <span className="shrink-0 font-bold">
+                        {formatRupiah(u.harga)}
+                      </span>
                     </div>
                   );
                 })}
-                {booking.items.length === 0 && <p className="text-xs text-slate-400">Tidak ada layanan.</p>}
+                {booking.items.length === 0 && (
+                  <p className="text-xs text-slate-400">Tidak ada layanan.</p>
+                )}
               </div>
+
               <div className="mt-3 flex items-center gap-2 text-[11px] font-medium">
                 <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-green-700">
-                  <span className="h-2 w-2 rounded-full bg-green-500" /> Sudah dibayar
+                  <span className="h-2 w-2 rounded-full bg-green-500" /> Sudah
+                  dibayar
                 </span>
                 <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-red-700">
-                  <span className="h-2 w-2 rounded-full bg-red-500" /> Belum dibayar
+                  <span className="h-2 w-2 rounded-full bg-red-500" /> Belum
+                  dibayar
                 </span>
               </div>
+
               <div className="mt-3 border-t border-soft pt-3">
                 <div className="flex justify-between text-xs text-slate-500">
                   <span>Total tagihan</span>
-                  <span className="font-bold text-slate-900">{formatRupiah(booking.total)}</span>
+                  <span className="font-bold text-slate-900">
+                    {formatRupiah(booking.total)}
+                  </span>
                 </div>
                 <div className="flex justify-between text-xs text-slate-500">
                   <span>Sudah dibayar</span>
-                  <span className="font-bold text-green-700">{formatRupiah(totalDibayar)}</span>
+                  <span className="font-bold text-green-700">
+                    {formatRupiah(pay.dibayar)}
+                  </span>
                 </div>
+                {pay.lebih > 0 && (
+                  <div className="flex justify-between text-xs text-slate-500">
+                    <span>Kelebihan bayar</span>
+                    <span className="font-bold text-blue-700">
+                      {formatRupiah(pay.lebih)}
+                    </span>
+                  </div>
+                )}
                 <div className="mt-2">
-                  <span className="text-xs font-bold uppercase text-slate-400">Sisa Tagihan Belum Dibayar</span>
-                  <p className={`text-2xl font-bold ${isPaid ? "text-green-700" : "text-red-600"}`}>
-                    {isPaid ? "LUNAS (Rp 0)" : formatRupiah(sisa)}
+                  <span className="text-xs font-bold uppercase text-slate-400">
+                    Sisa Tagihan Belum Dibayar
+                  </span>
+                  <p
+                    className={`text-2xl font-bold ${isPaid ? "text-green-700" : "text-red-600"}`}
+                  >
+                    {isPaid ? "LUNAS (Rp 0)" : formatRupiah(pay.sisa)}
                   </p>
                 </div>
               </div>
@@ -500,6 +712,15 @@ export default function BookingDetail() {
           </aside>
         </div>
       </main>
+
+      {/* Langkah 2.12: dialog pilihan keperluan cetak detail booking */}
+      {showCetak && (
+        <CetakBookingDialog
+          booking={booking}
+          onCetak={cetakDetail}
+          onClose={() => setShowCetak(false)}
+        />
+      )}
     </>
   );
 }

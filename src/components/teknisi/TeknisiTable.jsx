@@ -1,7 +1,9 @@
 // src/components/teknisi/TeknisiTable.jsx
-// Langkah 4: tabel teknisi dengan cari dan filter status
+// Langkah 2: tabel teknisi dengan cari, filter status, dan pagination
 import { useState } from "react";
 import { Search, Pencil, Trash2, Plus } from "lucide-react";
+import Pagination from "../Pagination";
+import usePagination from "../hooks/usePagination";
 
 const statusColor = {
   Aktif: "bg-green-100 text-green-700",
@@ -20,6 +22,9 @@ export default function TeknisiTable({ data, onAdd, onEdit, onDelete }) {
       t.telepon.includes(keyword);
     return cocokKata && (filter === "Semua" || t.status === filter);
   });
+
+  // Langkah 2.1: 10 baris per halaman, kembali ke halaman 1 saat cari atau filter berubah
+  const hal = usePagination(rows, 10, `${keyword}|${filter}`);
 
   return (
     <div className="rounded-xl bg-white p-5 shadow">
@@ -75,9 +80,10 @@ export default function TeknisiTable({ data, onAdd, onEdit, onDelete }) {
             </tr>
           </thead>
           <tbody>
-            {rows.map((t, i) => (
+            {/* Langkah 2.2: hanya baris di halaman aktif, nomor urut berlanjut antar halaman */}
+            {hal.pageItems.map((t, i) => (
               <tr key={t.id} className="border-b border-gray-100 last:border-0">
-                <td className="px-3 py-2">{i + 1}</td>
+                <td className="px-3 py-2">{hal.mulai + i + 1}</td>
                 <td className="px-3 py-2 font-medium">{t.nama}</td>
                 <td className="px-3 py-2">{t.telepon || "-"}</td>
                 <td className="px-3 py-2">
@@ -119,9 +125,8 @@ export default function TeknisiTable({ data, onAdd, onEdit, onDelete }) {
         </table>
       </div>
 
-      <p className="mt-3 text-xs text-gray-500">
-        Menampilkan {rows.length} dari {data.length} teknisi
-      </p>
+      {/* Langkah 2.3: kontrol halaman, menggantikan teks "Menampilkan x dari y teknisi" */}
+      <Pagination {...hal} onChange={hal.setPage} />
     </div>
   );
 }

@@ -1,10 +1,12 @@
 // src/pages/UangKeluar.jsx  (FE, DIGANTI seluruh isi)
-// Langkah 3: halaman Uang Keluar, sekarang dengan form tambah dan edit
+// Langkah 3: halaman Uang Keluar, dengan form tambah dan edit, serta cetak laporan
 import { useEffect, useState } from "react";
-import { Plus } from "lucide-react";
+import { Plus, Printer } from "lucide-react";
 import ExpenseSummary from "../components/uangkeluar/ExpenseSummary";
 import ExpenseTable from "../components/uangkeluar/ExpenseTable";
 import ExpenseForm from "../components/uangkeluar/ExpenseForm.jsx";
+import CetakLaporanDialog from "../components/laporan/CetakLaporanDialog";
+import { KATEGORI_KELUAR } from "../data/expenseOptions";
 import {
   getExpenses,
   createExpense,
@@ -16,6 +18,8 @@ import {
   ringkasPengeluaran,
   formatTanggalPendek,
 } from "../utils/pengeluaran";
+import { cetakDokumen } from "../utils/cetak";
+import { dokumenLaporanPengeluaran } from "../utils/cetakLaporan";
 
 // TypeError berarti fetch gagal terhubung (backend mati / alamat salah)
 const pesanError = (err) =>
@@ -30,6 +34,36 @@ const PRESET = [
   { id: "semua", label: "Semua Waktu" },
 ];
 
+// Langkah 3.8: bagian yang bisa dipilih saat mencetak
+const BAGIAN_CETAK = [
+  {
+    id: "ringkasan",
+    label: "Ringkasan",
+    keterangan: "Total, jumlah catatan, dan kategori terbesar",
+    ringkas: true,
+  },
+  {
+    id: "kategori",
+    label: "Rekap per kategori",
+    keterangan: "Total dan porsi tiap kategori",
+    ringkas: true,
+  },
+  {
+    id: "rincian",
+    label: "Rincian pengeluaran",
+    keterangan: "Semua catatan, tidak terpotong halaman tabel",
+  },
+];
+
+// Langkah 3.9: pilihan kategori pada dialog cetak
+const FILTER_CETAK = {
+  label: "Kategori",
+  opsi: [
+    { value: "Semua", label: "Semua kategori" },
+    ...KATEGORI_KELUAR.map((k) => ({ value: k, label: k })),
+  ],
+};
+
 export default function UangKeluar() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -42,6 +76,9 @@ export default function UangKeluar() {
 
   // Langkah 3.2: pesan di atas tabel, { tipe: "sukses" | "error", teks }
   const [pesan, setPesan] = useState(null);
+
+  // Langkah 3.10: dialog pilihan cetak
+  const [showCetak, setShowCetak] = useState(false);
 
   // filter awal = bulan ini, "custom" dipakai saat tanggal diisi sendiri
   const [filter, setFilter] = useState({
@@ -106,6 +143,21 @@ export default function UangKeluar() {
   }
 
   const ringkasan = ringkasPengeluaran(terfilter);
+
+  // Langkah 3.11: cetak memakai pengeluaran pada periode yang sedang tampil
+  // (kotak cari di tabel tidak ikut, kategori dipilih di dialog cetak)
+  const handleCetak = ({ bagian, orientasi, filter: kategori }) => {
+    cetakDokumen({
+      judul: `Laporan Uang Keluar ${periode}`,
+      isi: dokumenLaporanPengeluaran({
+        data: terfilter,
+        periode,
+        bagian,
+        kategori,
+      }),
+      orientasi,
+    });
+  };
 
   // Langkah 3.3: buka form kosong untuk tambah
   const handleAdd = () => {
@@ -202,13 +254,30 @@ export default function UangKeluar() {
             </div>
           </div>
 
-          <button
-            onClick={handleAdd}
-            className="flex items-center gap-2 rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-white hover:bg-primary"
-          >
-            <Plus size={16} />
-            Tambah Pengeluaran
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Langkah 3.12: tombol cetak, aktif jika ada pengeluaran pada periode yang tampil */}
+            <button
+              onClick={() => setShowCetak(true)}
+              disabled={loading || Boolean(error) || terfilter.length === 0}
+              title={
+                terfilter.length === 0
+                  ? "Tidak ada data pada periode ini"
+                  : "Cetak laporan uang keluar"
+              }
+              className="flex items-center gap-2 rounded-lg border border-primary px-4 py-2 text-sm font-medium text-primary hover:bg-soft disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Printer size={16} />
+              Cetak Laporan
+            </button>
+
+            <button
+              onClick={handleAdd}
+              className="flex items-center gap-2 rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-white hover:bg-primary"
+            >
+              <Plus size={16} />
+              Tambah Pengeluaran
+            </button>
+          </div>
         </div>
 
         {/* Langkah 3.6: pesan sukses (hijau) atau error (merah), bisa ditutup */}
@@ -270,6 +339,17 @@ export default function UangKeluar() {
           initialData={editing}
           onSubmit={handleSubmit}
           onClose={handleClose}
+        />
+      )}
+
+      {/* Langkah 3.13: dialog pilihan cetak */}
+      {showCetak && (
+        <CetakLaporanDialog
+          judul="Cetak Laporan Uang Keluar"
+          bagian={BAGIAN_CETAK}
+          filter={FILTER_CETAK}
+          onCetak={handleCetak}
+          onClose={() => setShowCetak(false)}
         />
       )}
     </>
