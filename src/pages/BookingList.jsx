@@ -1,11 +1,17 @@
 // src/pages/BookingList.jsx
-// Langkah 7: daftar booking dengan cari, filter status, ubah status, dan hapus
+// Langkah 7: daftar booking dengan cari, filter status, ubah status, hapus, dan pagination
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Plus, Search, Trash2, Eye, Pencil } from "lucide-react";
-import { getBookings, updateBookingStatus, deleteBooking } from "../services/bookingService";
+import {
+  getBookings,
+  updateBookingStatus,
+  deleteBooking,
+} from "../services/bookingService";
 import { STATUS_OPSI } from "../services/bookingMapper";
 import ConfirmDeleteBooking from "../components/booking/ConfirmDeleteBooking";
+import Pagination from "../components/Pagination";
+import usePagination from "../components/hooks/usePagination";
 
 const badgeColor = {
   Menunggu: "bg-yellow-100 text-yellow-700",
@@ -50,6 +56,9 @@ export default function BookingList() {
     return cocokKata && (filter === "Semua" || b.status === filter);
   });
 
+  // Langkah 7.0: 10 baris per halaman, kembali ke halaman 1 saat cari atau filter berubah
+  const hal = usePagination(rows, 10, `${keyword}|${filter}`);
+
   // Langkah 7.1: ubah status lewat PUT, baris diganti dengan hasil dari backend
   const handleStatus = async (booking, statusBaru) => {
     setUpdatingId(booking.id);
@@ -57,7 +66,10 @@ export default function BookingList() {
     try {
       const baru = await updateBookingStatus(booking, statusBaru);
       setData((d) => d.map((b) => (b.id === baru.id ? baru : b)));
-      setPesan({ tipe: "sukses", teks: `Status ${booking.kode} diubah menjadi ${statusBaru}.` });
+      setPesan({
+        tipe: "sukses",
+        teks: `Status ${booking.kode} diubah menjadi ${statusBaru}.`,
+      });
     } catch (err) {
       setPesan({ tipe: "error", teks: pesanError(err) });
     } finally {
@@ -71,7 +83,10 @@ export default function BookingList() {
     try {
       await deleteBooking(deletingItem.id);
       setData((d) => d.filter((b) => b.id !== deletingItem.id));
-      setPesan({ tipe: "sukses", teks: `Booking ${deletingItem.kode} berhasil dihapus.` });
+      setPesan({
+        tipe: "sukses",
+        teks: `Booking ${deletingItem.kode} berhasil dihapus.`,
+      });
     } catch (err) {
       setPesan({ tipe: "error", teks: pesanError(err) });
     } finally {
@@ -82,7 +97,9 @@ export default function BookingList() {
 
   const tombolFilter = (aktif) =>
     `rounded-lg border px-3 py-1 text-sm ${
-      aktif ? "border-primary bg-primary text-white" : "border-gray-300 hover:bg-soft"
+      aktif
+        ? "border-primary bg-primary text-white"
+        : "border-gray-300 hover:bg-soft"
     }`;
 
   return (
@@ -101,21 +118,30 @@ export default function BookingList() {
         {pesan && (
           <div
             className={`flex items-start justify-between gap-3 rounded-lg px-4 py-2 text-sm ${
-              pesan.tipe === "error" ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700"
+              pesan.tipe === "error"
+                ? "bg-red-100 text-red-700"
+                : "bg-green-100 text-green-700"
             }`}
           >
             <span>{pesan.teks}</span>
-            <button onClick={() => setPesan(null)} className="font-bold">×</button>
+            <button onClick={() => setPesan(null)} className="font-bold">
+              ×
+            </button>
           </div>
         )}
 
-        {loading && <p className="text-sm text-gray-500">Memuat data booking...</p>}
+        {loading && (
+          <p className="text-sm text-gray-500">Memuat data booking...</p>
+        )}
 
         {!loading && !gagalMuat && (
           <div className="rounded-xl bg-white p-5 shadow">
             <div className="mb-4 flex flex-wrap items-center gap-3">
               <div className="relative">
-                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <Search
+                  size={16}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                />
                 <input
                   type="text"
                   placeholder="Cari kode, nama, atau no. HP..."
@@ -125,7 +151,11 @@ export default function BookingList() {
                 />
               </div>
               {["Semua", ...STATUS_OPSI.map((s) => s.label)].map((s) => (
-                <button key={s} onClick={() => setFilter(s)} className={tombolFilter(filter === s)}>
+                <button
+                  key={s}
+                  onClick={() => setFilter(s)}
+                  className={tombolFilter(filter === s)}
+                >
                   {s}
                 </button>
               ))}
@@ -135,14 +165,29 @@ export default function BookingList() {
               <table className="w-full text-left text-sm">
                 <thead className="bg-soft text-primary">
                   <tr>
-                    {["No Registrasi", "Pelanggan", "Layanan AC", "Jadwal", "Total", "Pembayaran", "Status", "Aksi"].map((h) => (
-                      <th key={h} className="px-3 py-2">{h}</th>
+                    {[
+                      "No Registrasi",
+                      "Pelanggan",
+                      "Layanan AC",
+                      "Jadwal",
+                      "Total",
+                      "Pembayaran",
+                      "Status",
+                      "Aksi",
+                    ].map((h) => (
+                      <th key={h} className="px-3 py-2">
+                        {h}
+                      </th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {rows.map((b) => (
-                    <tr key={b.id} className="border-b border-gray-100 align-top last:border-0">
+                  {/* Langkah 7.3: hanya baris di halaman aktif */}
+                  {hal.pageItems.map((b) => (
+                    <tr
+                      key={b.id}
+                      className="border-b border-gray-100 align-top last:border-0"
+                    >
                       <td className="px-3 py-2 font-mono text-xs">{b.kode}</td>
                       <td className="px-3 py-2">
                         <p className="font-medium">{b.pelanggan}</p>
@@ -150,20 +195,27 @@ export default function BookingList() {
                       </td>
                       <td className="px-3 py-2">
                         {b.items.length > 1 && (
-                          <p className="mb-1 text-xs font-semibold text-primary">{b.items.length} unit AC</p>
+                          <p className="mb-1 text-xs font-semibold text-primary">
+                            {b.items.length} unit AC
+                          </p>
                         )}
                         <ul className="space-y-0.5">
                           {b.items.map((it) => (
                             <li key={it.id} className="text-xs">
-                              <span className="text-gray-500">{it.unit}:</span> {it.layanan}
+                              <span className="text-gray-500">{it.unit}:</span>{" "}
+                              {it.layanan}
                             </li>
                           ))}
                         </ul>
                       </td>
                       <td className="px-3 py-2">{b.jadwal}</td>
-                      <td className="px-3 py-2">Rp {b.total.toLocaleString("id-ID")}</td>
                       <td className="px-3 py-2">
-                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${b.paid ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+                        Rp {b.total.toLocaleString("id-ID")}
+                      </td>
+                      <td className="px-3 py-2">
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${b.paid ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
+                        >
                           {b.paid ? "Lunas" : "Belum"}
                         </span>
                       </td>
@@ -177,7 +229,9 @@ export default function BookingList() {
                           }`}
                         >
                           {STATUS_OPSI.map((s) => (
-                            <option key={s.value} value={s.label}>{s.label}</option>
+                            <option key={s.value} value={s.label}>
+                              {s.label}
+                            </option>
                           ))}
                         </select>
                       </td>
@@ -213,16 +267,20 @@ export default function BookingList() {
                   ))}
                   {rows.length === 0 && (
                     <tr>
-                      <td colSpan={8} className="py-6 text-center text-gray-500">Booking tidak ditemukan</td>
+                      <td
+                        colSpan={8}
+                        className="py-6 text-center text-gray-500"
+                      >
+                        Booking tidak ditemukan
+                      </td>
                     </tr>
                   )}
                 </tbody>
               </table>
             </div>
 
-            <p className="mt-3 text-xs text-gray-500">
-              Menampilkan {rows.length} dari {data.length} booking
-            </p>
+            {/* Langkah 7.4: kontrol halaman, menggantikan teks "Menampilkan x dari y booking" */}
+            <Pagination {...hal} onChange={hal.setPage} />
           </div>
         )}
       </main>

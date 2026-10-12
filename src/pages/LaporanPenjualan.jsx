@@ -1,11 +1,17 @@
 // src/pages/LaporanPenjualan.jsx
-// Langkah 5: laporan penjualan dari pembayaran yang berstatus paid, tabel transaksi dengan pagination
+// Langkah 4: laporan penjualan dari pembayaran yang berstatus paid, dengan pagination dan cetak
 import { useEffect, useState } from "react";
-import { Wallet, Receipt, TrendingUp } from "lucide-react";
+import { Wallet, Receipt, TrendingUp, Printer } from "lucide-react";
 import { getSalesReport } from "../services/transactionService";
 import { METODE } from "../services/transactionMapper";
 import { toISO } from "../utils/booking";
+import { cetakDokumen } from "../utils/cetak";
+import {
+  dokumenLaporanPenjualan,
+  teksRentangPenjualan,
+} from "../utils/cetakLaporan";
 import Pagination from "../components/Pagination";
+import CetakLaporanDialog from "../components/laporan/CetakLaporanDialog";
 import usePagination from "../components/hooks/usePagination";
 
 const rupiah = (n) => `Rp ${Number(n || 0).toLocaleString("id-ID")}`;
@@ -15,6 +21,27 @@ const pesanError = (err) =>
   err instanceof TypeError
     ? "Tidak dapat terhubung ke server. Pastikan backend sudah berjalan."
     : err.message;
+
+// Langkah 4.1: bagian yang bisa dipilih saat mencetak
+const BAGIAN_CETAK = [
+  {
+    id: "ringkasan",
+    label: "Ringkasan",
+    keterangan: "Total omzet, jumlah transaksi, dan rata-rata",
+    ringkas: true,
+  },
+  {
+    id: "metode",
+    label: "Rekap per metode pembayaran",
+    keterangan: "Nominal dan porsi tiap metode",
+    ringkas: true,
+  },
+  {
+    id: "rincian",
+    label: "Rincian transaksi",
+    keterangan: "Semua transaksi pada periode, tidak terpotong halaman tabel",
+  },
+];
 
 // rentang tanggal cepat
 const bulanIni = () => {
@@ -42,6 +69,9 @@ export default function LaporanPenjualan() {
   const [laporan, setLaporan] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  // Langkah 4.2: dialog pilihan cetak
+  const [showCetak, setShowCetak] = useState(false);
 
   // muat laporan setiap rentang berubah
   useEffect(() => {
@@ -89,13 +119,23 @@ export default function LaporanPenjualan() {
     setRentang(r);
   };
 
+  // Langkah 4.3: cetak memakai rentang yang sedang diterapkan (bukan isian yang belum diterapkan)
+  const handleCetak = ({ bagian, orientasi }) => {
+    const periode = teksRentangPenjualan(rentang);
+    cetakDokumen({
+      judul: `Laporan Penjualan ${periode}`,
+      isi: dokumenLaporanPenjualan({ laporan, periode, bagian }),
+      orientasi,
+    });
+  };
+
   const rataRata =
     laporan && laporan.totalTransaksi > 0
       ? Math.round(laporan.totalOmzet / laporan.totalTransaksi)
       : 0;
   const metodeList = laporan ? Object.entries(laporan.perMetode) : [];
 
-  // Langkah 5.1: pagination tabel transaksi, kembali ke halaman 1 saat rentang tanggal berubah
+  // pagination tabel transaksi, kembali ke halaman 1 saat rentang tanggal berubah
   const hal = usePagination(
     laporan ? laporan.transaksi : [],
     10,
@@ -109,10 +149,20 @@ export default function LaporanPenjualan() {
 
   return (
     <>
-      <header className="border-b border-gray-200 bg-white px-6 py-4">
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 bg-white px-6 py-4">
         <h1 className="text-lg font-semibold text-primary">
           Laporan Penjualan
         </h1>
+
+        {/* Langkah 4.4: tombol cetak, aktif setelah laporan termuat */}
+        <button
+          onClick={() => setShowCetak(true)}
+          disabled={loading || Boolean(error) || !laporan}
+          className="flex items-center gap-2 rounded-lg border border-primary px-4 py-2 text-sm font-medium text-primary hover:bg-soft disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <Printer size={16} />
+          Cetak Laporan
+        </button>
       </header>
 
       <main className="space-y-6 p-6">
@@ -271,7 +321,6 @@ export default function LaporanPenjualan() {
                     </tr>
                   </thead>
                   <tbody>
-                    {/* Langkah 5.2: hanya baris di halaman aktif */}
                     {hal.pageItems.map((t) => (
                       <tr
                         key={t.id}
@@ -307,7 +356,6 @@ export default function LaporanPenjualan() {
                 </table>
               </div>
 
-              {/* Langkah 5.3: kontrol halaman */}
               <Pagination {...hal} onChange={hal.setPage} />
 
               <p className="mt-3 text-xs text-gray-500">
@@ -317,6 +365,16 @@ export default function LaporanPenjualan() {
           </>
         )}
       </main>
+
+      {/* Langkah 4.5: dialog pilihan cetak */}
+      {showCetak && (
+        <CetakLaporanDialog
+          judul="Cetak Laporan Penjualan"
+          bagian={BAGIAN_CETAK}
+          onCetak={handleCetak}
+          onClose={() => setShowCetak(false)}
+        />
+      )}
     </>
   );
 }
