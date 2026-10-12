@@ -107,22 +107,16 @@ function Kalender({ value, onSelect }) {
 }
 
 // Langkah 9.4: jumlahUnit dan durasi hanya untuk label di atas
-export default function StepSchedule({ jadwal, errors, jumlahUnit, durasi, onTanggal, onJam, onBack, onNext, labelNext }) {
+export default function StepSchedule({ jadwal, errors, jumlahUnit, durasi, onTanggal, onJam, onBack, onNext, labelNext, hideNavigation = false }) {
   return (
-    <div className="mx-auto max-w-5xl rounded-xl border border-soft bg-white p-6 shadow-sm">
-      <div className="flex flex-col justify-between gap-3 border-b border-soft pb-4 sm:flex-row sm:items-center">
-        <div className="flex items-center gap-3">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-soft font-bold text-primary">3</span>
-          <div>
-            <h2 className="text-lg font-bold uppercase text-slate-900">Pilih Jadwal Service</h2>
-            <p className="text-sm text-slate-600">Pilih tanggal dan jam kedatangan teknisi.</p>
-          </div>
-        </div>
+    <div>
+      {/* <div className="flex flex-col justify-between gap-3 border-b border-soft pb-4 sm:flex-row sm:items-center">
+        
         <span className="inline-flex items-center gap-1 rounded-full bg-soft/50 px-3 py-1 text-xs font-bold text-secondary">
           <CheckCircle2 size={16} />
           {jumlahUnit} Unit AC • Estimasi ± {durasi > 0 ? formatDurasi(durasi) : "-"}
         </span>
-      </div>
+      </div> */}
 
       <div className="mt-6 grid grid-cols-1 gap-5 md:grid-cols-12">
         <div className="md:col-span-7">
@@ -137,7 +131,6 @@ export default function StepSchedule({ jadwal, errors, jumlahUnit, durasi, onTan
           </h3>
           <p className="mb-3 text-xs text-slate-600">Perkiraan awal kehadiran teknisi di lokasi pelanggan.</p>
 
-          {/* Langkah 9.5: jam yang sudah lewat hari ini dinonaktifkan */}
           <div className="grid grid-cols-2 gap-2">
             {SLOT_JAM.map((jam) => {
               const lewat = slotTerlewat(jadwal.tanggal, jam);
@@ -175,24 +168,26 @@ export default function StepSchedule({ jadwal, errors, jumlahUnit, durasi, onTan
         </div>
       </div>
 
-      <div className="mt-8 flex items-center justify-between border-t border-soft pt-4">
-        <button
-          type="button"
-          onClick={onBack}
-          className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm text-slate-600 hover:bg-soft"
-        >
-          <ArrowLeft size={18} />
-          Kembali ke Unit AC
-        </button>
-        <button
-          type="button"
-          onClick={onNext}
-          className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-bold text-white hover:bg-secondary"
-        >
-          {labelNext || "Lanjutkan ke Review"}
-          <ArrowRight size={18} />
-        </button>
-      </div>
+      {/* {!hideNavigation && (
+        <div className="mt-8 flex items-center justify-between border-t border-soft pt-4">
+          <button
+            type="button"
+            onClick={onBack}
+            className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm text-slate-600 hover:bg-soft"
+          >
+            <ArrowLeft size={18} />
+            Kembali
+          </button>
+          <button
+            type="button"
+            onClick={onNext}
+            className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-bold text-white hover:bg-secondary"
+          >
+            {labelNext || "Lanjutkan"}
+            <ArrowRight size={18} />
+          </button>
+        </div>
+      )} */}
     </div>
   );
 }
