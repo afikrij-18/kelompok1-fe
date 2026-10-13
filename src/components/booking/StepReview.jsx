@@ -27,6 +27,7 @@ import {
   inputClass,
 } from "../../utils/booking";
 import { METODE_OPSI } from "../../services/transactionMapper";
+import { BANK_OPSI } from "../../utils/pembayaran";
 
 function Bagian({ icon: Icon, judul, onUbah, children }) {
   return (
@@ -214,10 +215,35 @@ export default function StepReview({
                 </select>
               </div>
 
-              <div>
-                <label className="mb-1 block text-xs font-bold text-slate-800">Jumlah Dibayar</label>
-                <input value={formatRupiah(sisa > 0 ? sisa : total)} readOnly className={`${inputClass(false)} bg-slate-50`} />
-              </div>
+              {bayar.metode === "transfer_bank" ? (
+                <div>
+                  <label htmlFor="pilihBank" className="mb-1 block text-xs font-bold text-slate-800">
+                    Pilih Bank Tujuan
+                  </label>
+                  <select
+                    id="pilihBank"
+                    value={bayar.bank}
+                    onChange={(e) => ubahBayar("bank", e.target.value)}
+                    className={inputClass(false)}
+                  >
+                    {BANK_OPSI.map((b) => (
+                      <option key={b} value={b}>{b}</option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <div>
+                  <label className="mb-1 block text-xs font-bold text-slate-800">Jumlah Dibayar</label>
+                  <input value={formatRupiah(sisa > 0 ? sisa : total)} readOnly className={`${inputClass(false)} bg-slate-50`} />
+                </div>
+              )}
+
+              {bayar.metode === "transfer_bank" && (
+                <div>
+                  <label className="mb-1 block text-xs font-bold text-slate-800">Jumlah Dibayar</label>
+                  <input value={formatRupiah(sisa > 0 ? sisa : total)} readOnly className={`${inputClass(false)} bg-slate-50`} />
+                </div>
+              )}
 
               <div className="sm:col-span-2">
                 <label htmlFor="catatanBayar" className="mb-1 block text-xs font-bold text-slate-800">
