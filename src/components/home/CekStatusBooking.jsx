@@ -20,6 +20,7 @@ export default function CekStatusBooking() {
   const [telepon, setTelepon] = useState("");
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
   const [hasil, setHasil] = useState(null);
   const [pesan, setPesan] = useState("");
 
@@ -40,6 +41,7 @@ export default function CekStatusBooking() {
     setLoading(true);
     setHasil(null);
     setPesan("");
+    setHasSearched(true);
     try {
       setHasil(
         await cekStatusBooking({ kode: kodeBersih, telepon: teleponBersih }),
@@ -147,7 +149,7 @@ export default function CekStatusBooking() {
       )}
 
       {/* Langkah 4.2: hasil, hanya data yang aman ditampilkan ke pelanggan */}
-      {hasil && (
+      {hasil ? (
         <div className="mt-5 space-y-4 border-t border-soft pt-5">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="font-mono text-sm font-bold text-primary">
@@ -233,6 +235,21 @@ export default function CekStatusBooking() {
               </span>
             </p>
           </div>
+        </div>
+      ) : (
+        <div className="mt-5 flex flex-col items-center justify-center py-10 text-center text-slate-400">
+          {loading ? (
+            <Loader2 size={32} className="mb-3 animate-spin text-primary" />
+          ) : (
+            <>
+              <Search size={40} className="mb-3 opacity-20" />
+              <p className="text-xs">
+                {hasSearched
+                  ? "Booking tidak ditemukan. Periksa kembali nomor registrasi dan nomor HP Anda."
+                  : "Masukkan nomor registrasi dan nomor HP untuk melihat status booking Anda."}
+              </p>
+            </>
+          )}
         </div>
       )}
     </div>

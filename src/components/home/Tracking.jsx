@@ -44,6 +44,7 @@ export default function Tracking() {
   const [registration, setRegistration] = useState("");
   const [phone, setPhone] = useState("");
   const [errors, setErrors] = useState({});
+  const [hasSearched, setHasSearched] = useState(false);
   const [loading, setLoading] = useState(false);
   const [hasil, setHasil] = useState(null);
   const [message, setMessage] = useState("");
@@ -65,6 +66,7 @@ export default function Tracking() {
     setLoading(true);
     setHasil(null);
     setMessage("");
+    setHasSearched(true);
     try {
       setHasil(await cekStatusBooking({ kode, telepon }));
     } catch (err) {
@@ -304,63 +306,20 @@ export default function Tracking() {
                 </div>
               </>
             ) : (
-              <>
-                {/* contoh tampilan, tetap tampil sampai ada hasil pencarian */}
-                <div className="flex items-center justify-between border-b border-[#c4e2f5] pb-4">
-                  <div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#1591dc]">
-                      Contoh status service
-                    </span>
-
-                    <h3 className="mt-0.5 font-mono text-base font-bold text-[#0a2540] sm:text-lg">
-                      BOOKING #BK-20261008-3176
-                    </h3>
-                  </div>
-
-                  <span className="rounded-full border border-[#c4e2f5] bg-[#e8f5ff] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[#2c5ead]">
-                    Demo
-                  </span>
-                </div>
-
-                <div className="py-2">
-                  <div className="relative flex flex-col space-y-6">
-                    <StatusItem
-                      completed
-                      title="Booking Dikonfirmasi"
-                      description="Pesanan Anda telah diterima dalam sistem jadwal."
-                    />
-
-                    <StatusItem
-                      completed
-                      title="Teknisi Ditugaskan"
-                      description="Teknisi siap bertugas sesuai jadwal Anda."
-                    />
-
-                    <StatusItem
-                      current
-                      title="Teknisi Dalam Perjalanan"
-                      description="Teknisi sedang meluncur ke alamat service Anda."
-                      extra="Estimasi tiba: 14:15 WIB"
-                    />
-
-                    <StatusItem
-                      title="Sedang Dikerjakan"
-                      description="Proses pencucian dan pemeriksaan teknis unit AC."
-                    />
-
-                    <StatusItem
-                      last
-                      title="Service Selesai"
-                      description="Pekerjaan rampung dan kartu garansi aktif."
-                    />
-                  </div>
-                </div>
-
-                <p className="text-center text-[11px] text-[#434751]">
-                  Masukkan nomor registrasi dan nomor HP untuk melihat status
-                  booking Anda yang sebenarnya.
-                </p>
-              </>
+              <div className="flex flex-col items-center justify-center py-14 text-center">
+                {loading ? (
+                  <Loader2 size={36} className="mb-3 animate-spin text-[#2c5ead]" />
+                ) : (
+                  <>
+                    <Search size={44} className="mb-3 text-[#c4e2f5]" />
+                    <p className="text-[11px] text-[#434751]">
+                      {hasSearched
+                        ? "Booking tidak ditemukan. Periksa kembali nomor registrasi dan nomor HP Anda."
+                        : "Masukkan nomor registrasi dan nomor HP untuk melihat status service Anda."}
+                    </p>
+                  </>
+                )}
+              </div>
             )}
           </div>
         </div>
