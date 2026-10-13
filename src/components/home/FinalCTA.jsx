@@ -21,7 +21,7 @@ export default function FinalCTA() {
 
         <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
           <a
-            href="/booking"
+            href="/pesan"
             className="inline-flex w-full items-center justify-center gap-2.5 rounded-xl bg-white px-9 py-4 text-sm font-bold text-[#2c5ead] shadow-2xl transition-all hover:-translate-y-0.5 hover:bg-[#e8f5ff] sm:w-auto"
           >
             <CalendarDays className="h-5 w-5 text-[#1591dc]" />

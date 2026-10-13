@@ -43,7 +43,7 @@ export default function Hero() {
 
             <div className="flex w-full flex-wrap items-center gap-5 pt-2 sm:w-auto">
               <a
-                href="/booking"
+                href="/pesan"
                 className="inline-flex w-full items-center justify-center gap-2.5 rounded-xl bg-[#2c5ead] px-8 py-4 text-sm font-bold text-white shadow-lg shadow-[#2c5ead]/30 transition-all hover:-translate-y-0.5 hover:bg-[#1f4684] sm:w-auto"
               >
                 <CalendarCheck size={21} />

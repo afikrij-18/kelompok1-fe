@@ -89,7 +89,7 @@ export default function BookingSteps() {
 
         <div className="flex justify-center">
           <a
-            href="/booking"
+            href="/pesan"
             className="inline-flex items-center gap-2 rounded-xl bg-[#2c5ead] px-8 py-3.5 text-xs font-bold text-white shadow-lg shadow-[#2c5ead]/25 transition-all hover:-translate-y-0.5 hover:bg-[#1f4684] sm:text-sm"
           >
             BOOKING SERVICE SEKARANG

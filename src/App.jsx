@@ -4,6 +4,7 @@ import AppLayout from "./layouts/AppLayout";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Login from "./pages/Login";
 import HomePage from "./pages/HomePage";
+import PesanService from "./pages/PesanService";
 import Dashboard from "./pages/Dashboard";
 import BookingList from "./pages/BookingList";
 import Booking from "./pages/Booking";
@@ -22,11 +23,13 @@ function App() {
     <div>
       <BrowserRouter>
         <Routes>
-          {/* Langkah 4.1: halaman tanpa login dan tanpa sidebar */}
+          {/* Langkah 2.1: halaman publik, tanpa login dan tanpa sidebar */}
           <Route path="/login" element={<Login />} />
           <Route path="/" element={<HomePage />} />
+          {/* form booking untuk pelanggan, berbeda dari form admin di /booking/baru */}
+          <Route path="/pesan" element={<PesanService />} />
 
-          {/* Langkah 4.2: lapis pertama cek login, lapis kedua layout dengan sidebar */}
+          {/* Langkah 2.2: lapis pertama cek login, lapis kedua layout dengan sidebar */}
           <Route element={<ProtectedRoute />}>
             <Route element={<AppLayout />}>
               <Route path="/dashboard" element={<Dashboard />} />
@@ -40,7 +43,7 @@ function App() {
               <Route path="/uang-keluar" element={<UangKeluar />} />
               <Route path="/technician" element={<Teknisi />} />
               <Route path="/laporan-penjualan" element={<LaporanPenjualan />} />
-              {/* Langkah 4.3: pengaturan akun (profil dan password) */}
+              {/* pengaturan akun (profil dan password) */}
               <Route path="/pengaturan" element={<Pengaturan />} />
             </Route>
           </Route>
