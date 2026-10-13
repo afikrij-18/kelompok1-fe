@@ -1,3 +1,4 @@
+// src/components/ui/Footer.jsx
 import {
   Snowflake,
   BadgeCheck,
@@ -6,8 +7,13 @@ import {
   Clock3,
   MapPin,
 } from "lucide-react";
+import useLayananPublik from "../hooks/useLayananPublik";
 
 export default function Footer() {
+  // Langkah 6.1: daftar layanan di footer mengikuti menu Layanan AC, maksimal 6 nama
+  const { layanan, loading, error } = useLayananPublik();
+  const daftarLayanan = layanan.slice(0, 6);
+
   return (
     <footer className="border-t border-[#c4e2f5] bg-white">
       <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
@@ -43,22 +49,39 @@ export default function Footer() {
             </h4>
 
             <ul className="space-y-2 text-xs text-[#434751] sm:text-sm">
-              {[
-                "Cuci AC",
-                "Service AC",
-                "Isi Freon (R32 / R410A / R22)",
-                "Perbaikan AC Bocor & Mati",
-                "Bongkar / Pasang AC",
-              ].map((item) => (
-                <li key={item}>
+              {/* Langkah 6.2: kerangka saat memuat */}
+              {loading &&
+                [1, 2, 3, 4].map((n) => (
+                  <li key={n}>
+                    <div className="h-3.5 w-40 animate-pulse rounded bg-[#e8f5ff]" />
+                  </li>
+                ))}
+
+              {/* nama layanan dari admin */}
+              {!loading &&
+                !error &&
+                daftarLayanan.map((item) => (
+                  <li key={item.id}>
+                    <a
+                      href="#layanan"
+                      className="transition-colors hover:text-[#2c5ead]"
+                    >
+                      {item.nama}
+                    </a>
+                  </li>
+                ))}
+
+              {/* gagal memuat atau belum ada layanan */}
+              {!loading && (error || daftarLayanan.length === 0) && (
+                <li>
                   <a
                     href="#layanan"
                     className="transition-colors hover:text-[#2c5ead]"
                   >
-                    {item}
+                    Lihat semua layanan
                   </a>
                 </li>
-              ))}
+              )}
             </ul>
           </div>
 
