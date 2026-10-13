@@ -304,55 +304,49 @@ export default function LaporanPenjualan() {
               </h2>
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm">
-                  <thead className="bg-soft text-primary">
-                    <tr>
-                      {[
-                        "No Invoice",
-                        "Booking",
-                        "Waktu Bayar",
-                        "Metode",
-                        "Dibayar",
-                        "Catatan",
-                      ].map((h) => (
-                        <th key={h} className="px-3 py-2">
-                          {h}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {hal.pageItems.map((t) => (
-                      <tr
-                        key={t.id}
-                        className="border-b border-gray-100 last:border-0"
-                      >
-                        <td className="px-3 py-2 font-mono text-xs">
-                          {t.invoice}
-                        </td>
-                        <td className="px-3 py-2 font-mono text-xs">
-                          {t.kodeBooking}
-                        </td>
-                        <td className="px-3 py-2">{t.waktuBayar}</td>
-                        <td className="px-3 py-2">{t.metode}</td>
-                        <td className="px-3 py-2 font-medium">
-                          {rupiah(t.dibayar)}
-                        </td>
-                        <td className="px-3 py-2 text-xs text-gray-500">
-                          {t.catatan}
-                        </td>
-                      </tr>
-                    ))}
-                    {laporan.transaksi.length === 0 && (
-                      <tr>
-                        <td
-                          colSpan={6}
-                          className="py-6 text-center text-gray-500"
-                        >
-                          Tidak ada transaksi pada periode ini
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
+              <thead className="bg-soft text-primary uppercase text-xs">
+                <tr>
+                  {["No", "No Invoice", "Booking", "Waktu Bayar", "Metode", "Dibayar", "Catatan"].map((h) => (
+                    <th key={h} className="px-4 py-3 whitespace-nowrap">
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {hal.pageItems.map((t, i) => (
+                  <tr
+                    key={t.id}
+                    className="hover:bg-soft/20 align-top transition"
+                  >
+                    <td className="px-4 py-3 text-xs text-gray-500">{hal.mulai + i + 1}</td>
+                    <td className="px-4 py-3 font-mono text-xs font-semibold">
+                      {t.invoice}
+                    </td>
+                    <td className="px-4 py-3 font-mono text-xs">
+                      {t.kodeBooking}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-700">{t.waktuBayar}</td>
+                    <td className="px-4 py-3 text-sm">{t.metode}</td>
+                    <td className="px-4 py-3 text-sm font-semibold text-gray-900">
+                      {rupiah(t.dibayar)}
+                    </td>
+                    <td className="px-4 py-3 text-xs text-gray-500">
+                      {t.catatan || "-"}
+                    </td>
+                  </tr>
+                ))}
+                {laporan.transaksi.length === 0 && (
+                  <tr>
+                    <td
+                      colSpan={7}
+                      className="py-10 text-center text-gray-500 italic"
+                    >
+                      Tidak ada transaksi pada periode ini
+                    </td>
+                  </tr>
+                )}
+              </tbody>
                 </table>
               </div>
 

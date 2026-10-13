@@ -46,10 +46,14 @@ export const fromApi = (b) => {
     // lunas kalau pembayaran menutupi total tagihan
     paid: total > 0 && totalDibayar >= total,
     teknisiId: b.technician_id || b.technician?.id || "",
+    teknisi: b.technician?.name || "",
+    teleponTeknisi: b.technician?.phone || "",
     transaksi: transaksiMentah.map((t) => ({
       id: t.id,
       invoice: t.invoice_no,
       metode: t.payment_method,
+      bankId: t.bank_id ?? t.bank_ref?.id ?? null,
+      bank: t.bank_ref?.nama || "",
       jumlah: t.amount_paid,
       status: t.payment_status,
       tanggal: t.payment_date,
@@ -65,6 +69,8 @@ export const fromApi = (b) => {
       layanan: u.service?.name || "",
       harga: u.price,
       catatan: u.keluhan || "",
+      garansi: Number(u.service?.warranty_days) || 0,
+      warrantyExpiry: u.warranty_expiry_date || null,
     })),
   };
 };

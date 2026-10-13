@@ -3,7 +3,7 @@ import { Wrench, Mail, Lock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { login } from "../services/authService";
 
-const DEFAULT_EMAIL = "admin@gmail.com";
+const DEFAULT_EMAIL = "admin@example.com";
 const DEFAULT_PASSWORD = "admin123";
 
 export default function Login() {

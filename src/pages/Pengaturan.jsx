@@ -16,6 +16,7 @@ import {
   TabBooking,
   TabNotifikasi,
 } from "../components/pengaturan/PengaturanUsaha";
+import { TabDataMaster } from "../components/pengaturan/TabDataMaster";
 
 const ROLE = { admin: "Admin", owner: "Owner" };
 
@@ -24,6 +25,7 @@ const TABS = [
   { id: "profil", label: "Profil Saya", icon: UserCircle },
   { id: "keamanan", label: "Keamanan", icon: KeyRound },
   { id: "usaha", label: "Usaha", icon: Store, segera: true },
+  { id: "data-master", label: "Data Master", icon: Store },
   { id: "booking", label: "Booking", icon: CalendarCheck, segera: true },
   { id: "notifikasi", label: "Notifikasi", icon: Bell, segera: true },
 ];
@@ -428,6 +430,7 @@ export default function Pengaturan() {
 
         {/* Langkah 2.6: tab yang masih desain saja */}
         {tab === "usaha" && <TabUsaha />}
+        {tab === "data-master" && <TabDataMaster />}
         {tab === "booking" && <TabBooking />}
         {tab === "notifikasi" && <TabNotifikasi />}
       </main>

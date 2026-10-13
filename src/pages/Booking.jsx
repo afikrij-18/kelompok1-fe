@@ -26,7 +26,8 @@ import {
   namaMerek,
 } from "../utils/booking";
 import { cekPelanggan, cariPelanggan } from "../utils/pelanggan";
-import { BANK_OPSI, susunCatatanBayar } from "../utils/pembayaran";
+import { susunCatatanBayar } from "../utils/pembayaran";
+import { getBanks } from "../services/expenseService";
 import { Wrench } from "lucide-react";
 
 const customerKosong = {
@@ -41,7 +42,8 @@ const jadwalKosong = { tanggal: "", jam: "" };
 const bayarKosong = {
   status: "belum",
   metode: "cash",
-  bank: BANK_OPSI[0],
+  bank: "",
+  bankId: "",
   catatan: "",
 };
 
@@ -67,6 +69,7 @@ export default function Booking() {
   const [layananList, setLayananList] = useState([]);
   const [pelangganList, setPelangganList] = useState([]);
   const [teknisiList, setTeknisiList] = useState([]);
+  const [banks, setBanks] = useState([]);
   const [gagalLayanan, setGagalLayanan] = useState("");
   const [gagalKirim, setGagalKirim] = useState("");
   const [infoBayar, setInfoBayar] = useState(null);
@@ -90,6 +93,16 @@ export default function Booking() {
     // Langkah 3.1: teknisi dari tabel teknisi, hanya yang aktif
     getTechnicians()
       .then((list) => setTeknisiList(list.filter((t) => t.status === "Aktif")))
+      .catch(() => {});
+
+    // Bank master untuk opsi transfer
+    getBanks("active")
+      .then((list) => {
+        setBanks(list);
+        if (list.length > 0) {
+          setBayar((prev) => ({ ...prev, bankId: String(list[0].id), bank: list[0].nama }));
+        }
+      })
       .catch(() => {});
   }, []);
 
@@ -290,16 +303,18 @@ export default function Booking() {
       // menjadi Selesai saat pembayaran lunas dicatat
       if (bayar.status === "lunas") {
         try {
+          const namaBank = (banks.find((b) => String(b.id) === String(bayar.bankId))?.nama) || bayar.bank || "";
           await createTransaction({
             bookingId: dibuat.id,
             metode: bayar.metode,
+            bankId: bayar.metode === "transfer_bank" ? bayar.bankId : undefined,
             jumlah: dibuat.total,
-            catatan: susunCatatanBayar(bayar),
+            catatan: susunCatatanBayar({ ...bayar, bank: namaBank }, banks),
           });
           info = {
             tipe: "sukses",
             teks: `Pembayaran lunas ${formatRupiah(dibuat.total)} (${METODE[bayar.metode]}${
-              bayar.metode === "transfer_bank" ? ` via ${bayar.bank}` : ""
+              bayar.metode === "transfer_bank" ? ` via ${namaBank}` : ""
             }) tercatat.`,
           };
         } catch (err) {

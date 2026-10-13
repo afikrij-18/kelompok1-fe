@@ -28,11 +28,13 @@ export default function LayananForm({ initialData, existingLayanan, kategoriList
           ...initialData,
           categoryId: String(initialData.categoryId),
           harga: String(initialData.harga),
+          garansi: String(initialData.garansi ?? 0),
         }
       : {
           nama: "",
           categoryId: kategoriList.length ? String(kategoriList[0].id) : "",
           harga: "",
+          garansi: "30",
           deskripsi: "",
         }
   );
@@ -66,6 +68,11 @@ export default function LayananForm({ initialData, existingLayanan, kategoriList
     const harga = Number(form.harga);
     if (!form.harga || !Number.isInteger(harga) || harga <= 0) {
       e.harga = "Harga harus berupa angka bulat lebih dari 0";
+    }
+
+    const garansi = Number(form.garansi);
+    if (!form.garansi || !Number.isInteger(garansi) || garansi < 0) {
+      e.garansi = "Garansi harus berupa angka hari (0 atau lebih)";
     }
 
     return e;
@@ -131,6 +138,12 @@ export default function LayananForm({ initialData, existingLayanan, kategoriList
             <label className="mb-1 block text-sm font-medium">Harga (Rp)</label>
             <input name="harga" type="number" min="0" value={form.harga} onChange={handleChange} className={inputClass("harga")} />
             {errors.harga && <p className="mt-1 text-xs text-red-600">{errors.harga}</p>}
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium">Garansi (Hari)</label>
+            <input name="garansi" type="number" min="0" value={form.garansi} onChange={handleChange} className={inputClass("garansi")} />
+            {errors.garansi && <p className="mt-1 text-xs text-red-600">{errors.garansi}</p>}
           </div>
 
           <div>

@@ -14,9 +14,16 @@ const gabungTransaksi = (mentah, semuaTransaksi) => ({
   transactions: mentah.transactions ?? semuaTransaksi.filter((t) => t.booking_id === mentah.id),
 });
 
-export async function getBookings() {
-  const [body, transaksi] = await Promise.all([apiFetch(PATH), ambilTransaksiMentah()]);
-  return body.data.map((b) => fromApi(gabungTransaksi(b, transaksi)));
+export async function getBookings(page = 1, limit = 10, { search = "", status = "" } = {}) {
+  const [body, transaksi] = await Promise.all([
+    apiFetch(`${PATH}?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}&status=${encodeURIComponent(status)}`),
+    ambilTransaksiMentah(),
+  ]);
+  const rows = (body.data || []).map((b) => fromApi(gabungTransaksi(b, transaksi)));
+  return {
+    data: rows,
+    meta: body.meta || { page, limit, totalItems: rows.length, totalPages: 1 },
+  };
 }
 
 export async function getBookingById(id) {
@@ -52,6 +59,18 @@ export async function updateBookingStatus(booking, statusLabel) {
   return getBookingById(booking.id);
 }
 
+// ubah teknisi penugasan langsung dari list booking
+export async function updateBookingTechnician(booking, teknisiId) {
+  await apiFetch(`${PATH}/${booking.id}`, {
+    method: "PUT",
+    body: JSON.stringify({
+      ...toApi(booking),
+      technician_id: teknisiId ? Number(teknisiId) : null,
+    }),
+  });
+  return getBookingById(booking.id);
+}
+
 // hapus booking beserta unitnya (hapus permanen di backend)
 export function deleteBooking(id) {
   return apiFetch(`${PATH}/${id}`, { method: "DELETE" });
@@ -61,7 +80,7 @@ export function deleteBooking(id) {
 // dikumpulkan dari daftar booking karena belum ada endpoint pelanggan.
 // Booking terbaru lebih dulu, jadi nama dan alamat yang terbaru ada di urutan pertama.
 export async function getCustomers() {
-  const body = await apiFetch(PATH);
+  const body = await apiFetch(`${PATH}?limit=100`);
   const peta = new Map();
 
   body.data.map(fromApi).forEach((b) => {

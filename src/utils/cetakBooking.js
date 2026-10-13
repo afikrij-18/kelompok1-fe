@@ -1,7 +1,7 @@
 // src/utils/cetakBooking.js
 // Langkah 3: isi dokumen cetak invoice dan detail booking (dicetak lewat cetakDokumen di cetak.js)
 // booking   = bentuk dari bookingMapper (kode, pelanggan, telepon, alamat, catatanLokasi, catatan,
-//             tanggal, jam, status, total, items [{ unit, merek, tipe, kapasitas, layanan, harga, catatan }])
+//             tanggal, jam, status, total, items [{ unit, merek, tipe, kapasitas, layanan, harga, catatan, garansi, warrantyExpiry }])
 // transaksi = bentuk dari transactionMapper (id, invoice, metode, dibayar, status, waktuBayar, catatan)
 import { kopDokumen, bagianHtml, ringkasanHtml, tabelHtml, rp, esc } from "./cetak";
 import { hitungPembayaran } from "./pembayaran";
@@ -43,13 +43,24 @@ const tabelUnit = (b, mode) => {
     { label: "Lokasi Unit" },
     { label: "AC" },
     { label: "Layanan" },
+    { label: "Garansi" },
+    { label: "Berakhir Garansi" },
     { label: mode === "kerja" ? "Keluhan" : "Keluhan / Catatan" },
   ];
   if (mode === "harga") kolom.push({ label: "Harga", kanan: true });
   if (mode === "kerja") kolom.push({ label: "Selesai" }, { label: "Catatan Teknisi" });
 
   const baris = b.items.map((it, i) => {
-    const r = [String(i + 1), it.unit, `${it.merek} ${it.tipe} ${it.kapasitas}`, it.layanan, it.catatan || "-"];
+    const detailAC = `${it.merek} ${it.tipe} ${it.kapasitas}`;
+    const garansiTxt = it.garansi > 0 ? `${it.garansi} Hari` : "-";
+    const berakhirTxt = it.warrantyExpiry
+      ? new Date(it.warrantyExpiry).toLocaleDateString("id-ID", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+        })
+      : "-";
+    const r = [String(i + 1), it.unit, detailAC, it.layanan, garansiTxt, berakhirTxt, it.catatan || "-"];
     if (mode === "harga") r.push(rp(it.harga));
     if (mode === "kerja") r.push("[   ]", "");
     return r;

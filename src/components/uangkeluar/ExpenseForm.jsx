@@ -1,84 +1,121 @@
-// src/components/uangkeluar/ExpenseForm.jsx  (FE, BARU)
-// Langkah 2: dialog tambah dan edit pengeluaran (satu komponen, dua mode)
-// Hanya tertutup lewat tombol X atau Batal, dan terkunci saat menyimpan
-import { useState } from "react";
+// src/components/uangkeluar/ExpenseForm.jsx
+import { useState, useEffect } from "react";
 import { X } from "lucide-react";
-import { KATEGORI_KELUAR, METODE_KELUAR } from "../../data/expenseOptions";
+import { METODE_KELUAR } from "../../data/expenseOptions";
 import { formatRupiah, hariIni, inputClass } from "../../utils/booking";
+import { getExpenseCategories, getBanks } from "../../services/expenseService";
 
-// Langkah 2.1: pesan error dari server, ditampilkan di bagian atas form
-// nama field backend belum diketahui, jadi semua pesan digabung dan tidak dipetakan ke kolom
 const pesanDariServer = (err) => {
   if (err instanceof TypeError) {
     return "Tidak dapat terhubung ke server. Pastikan backend sudah berjalan.";
   }
-  if (Array.isArray(err.errors) && err.errors.length > 0) {
-    return err.errors.map((x) => x.message).join(" ");
+  if (err.errors && typeof err.errors === "object") {
+    return Object.values(err.errors).join(" ");
   }
   return err.message;
 };
 
-// Langkah 2.2: initialData = pengeluaran yang diedit (null saat tambah)
-// onSubmit(form) dikerjakan halaman; kalau melempar error, pesannya tampil di sini
 export default function ExpenseForm({ initialData, onSubmit, onClose }) {
   const isEdit = Boolean(initialData);
 
-  // Langkah 2.3: nilai awal, tambah = hari ini dan kategori pertama, edit = data yang dipilih
-  // jumlah disimpan sebagai teks agar bisa dipakai di <input>
+  const [categories, setCategories] = useState([]);
+  const [loadingCats, setLoadingCats] = useState(true);
+  const [banks, setBanks] = useState([]);
+  const [loadingBanks, setLoadingBanks] = useState(true);
+
   const [form, setForm] = useState(() =>
     initialData
       ? {
           tanggal: initialData.tanggal,
-          kategori: initialData.kategori,
+          kategoriId: initialData.kategoriId ? String(initialData.kategoriId) : "",
           keterangan: initialData.keterangan,
           jumlah: String(initialData.jumlah),
           metode: initialData.metode,
-          catatan: initialData.catatan,
+          bank: initialData.bank || "",
+          bankId: initialData.bankId ? String(initialData.bankId) : "",
         }
       : {
           tanggal: hariIni(),
-          kategori: KATEGORI_KELUAR[0],
+          kategoriId: "",
           keterangan: "",
           jumlah: "",
           metode: METODE_KELUAR[0].value,
-          catatan: "",
+          bank: "",
+          bankId: "",
         }
   );
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
 
-  // Langkah 2.4: satu fungsi untuk semua input, error kolom itu dihapus saat mulai mengetik lagi
+  useEffect(() => {
+    getExpenseCategories("active")
+      .then((list) => {
+        setCategories(list);
+        if (!initialData && list.length > 0 && !form.kategoriId) {
+          setForm((f) => ({ ...f, kategoriId: String(list[0].id) }));
+        }
+      })
+      .catch(() => setCategories([]))
+      .finally(() => setLoadingCats(false));
+  }, [initialData]);
+
+  useEffect(() => {
+    getBanks("active")
+      .then((list) => {
+        setBanks(list);
+        // Saat edit, sinkronkan nama bank lama -> id jika belum ada
+        if (initialData && !form.bankId && form.bank) {
+          const hit = list.find((b) => b.nama === form.bank);
+          if (hit) setForm((f) => ({ ...f, bank: hit.nama, bankId: String(hit.id) }));
+        }
+      })
+      .catch(() => setBanks([]))
+      .finally(() => setLoadingBanks(false));
+  }, [initialData]);
+
+  // Simpan bank sebagai id + nama dari master
+  const handleBankChange = (e) => {
+    const val = e.target.value;
+    const hit = banks.find((b) => String(b.id) === val);
+    setForm({ ...form, bankId: val, bank: hit ? hit.nama : "" });
+    setErrors({ ...errors, bank: "", form: "" });
+  };
+
+  // Reset bank jika metode bukan transfer_bank
+  useEffect(() => {
+    if (form.metode !== "transfer_bank" && (form.bank || form.bankId)) {
+      setForm((f) => ({ ...f, bank: "", bankId: "" }));
+      setErrors((prev) => ({ ...prev, bank: "" }));
+    }
+  }, [form.metode, form.bank, form.bankId]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm({ ...form, [name]: value });
     setErrors({ ...errors, [name]: "", form: "" });
   };
 
-  // Langkah 2.5: validasi, mengembalikan objek error (kosong = valid)
   const validate = () => {
     const e = {};
-
-    // pengeluaran adalah uang yang sudah keluar, jadi tanggal tidak boleh di masa depan
     if (!form.tanggal) e.tanggal = "Tanggal wajib diisi";
     else if (form.tanggal > hariIni()) e.tanggal = "Tanggal tidak boleh lebih dari hari ini";
 
-    if (!form.kategori) e.kategori = "Pilih kategori";
+    if (!form.kategoriId) e.kategoriId = "Pilih kategori pengeluaran";
 
-    // batas 3 sampai 150 karakter adalah usulan, ubah jika backend punya aturan lain
     const ket = form.keterangan.trim();
-    if (ket.length < 3 || ket.length > 150) e.keterangan = "Keterangan harus 3-150 karakter";
+    if (ket.length < 3 || ket.length > 2000) e.keterangan = "Keterangan harus 3-2000 karakter";
 
     const nilai = Number(form.jumlah);
-    if (form.jumlah === "" || !Number.isInteger(nilai) || nilai <= 0) {
+    if (form.jumlah === "" || !Number.isSafeInteger(nilai) || nilai <= 0) {
       e.jumlah = "Jumlah harus berupa angka bulat lebih dari 0";
     }
 
-    if (!form.metode) e.metode = "Pilih metode";
+    if (!form.metode) e.metode = "Pilih metode pembayaran";
+    if (form.metode === "transfer_bank" && !form.bankId) e.bank = "Pilih bank tujuan";
 
     return e;
   };
 
-  // Langkah 2.6: saat tombol simpan ditekan
   const handleSubmit = async (ev) => {
     ev.preventDefault();
     const hasil = validate();
@@ -87,10 +124,8 @@ export default function ExpenseForm({ initialData, onSubmit, onClose }) {
 
     setSaving(true);
     try {
-      // berhasil: halaman menutup dialog ini
       await onSubmit(form);
     } catch (err) {
-      // gagal: dialog tetap terbuka, pesan tampil di dalam form
       setErrors({ form: pesanDariServer(err) });
     } finally {
       setSaving(false);
@@ -98,10 +133,9 @@ export default function ExpenseForm({ initialData, onSubmit, onClose }) {
   };
 
   const nilaiJumlah = Number(form.jumlah);
-  const jumlahValid = form.jumlah !== "" && Number.isInteger(nilaiJumlah) && nilaiJumlah > 0;
+  const jumlahValid = form.jumlah !== "" && Number.isSafeInteger(nilaiJumlah) && nilaiJumlah > 0;
 
   return (
-    // Langkah 2.7: lapisan gelap TANPA onClick, klik di luar kotak tidak menutup dialog
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
       role="dialog"
@@ -123,7 +157,6 @@ export default function ExpenseForm({ initialData, onSubmit, onClose }) {
           </button>
         </div>
 
-        {/* Langkah 2.8: noValidate agar validasi memakai aturan di atas, bukan bawaan browser */}
         <form onSubmit={handleSubmit} noValidate className="space-y-3">
           {errors.form && (
             <p className="rounded-lg bg-red-100 px-3 py-2 text-sm text-red-700">{errors.form}</p>
@@ -148,24 +181,25 @@ export default function ExpenseForm({ initialData, onSubmit, onClose }) {
             </div>
 
             <div>
-              <label htmlFor="kategori" className="mb-1 block text-sm font-medium">
+              <label htmlFor="kategoriId" className="mb-1 block text-sm font-medium">
                 Kategori <span className="text-red-600">*</span>
               </label>
               <select
-                id="kategori"
-                name="kategori"
-                value={form.kategori}
+                id="kategoriId"
+                name="kategoriId"
+                value={form.kategoriId}
                 onChange={handleChange}
-                disabled={saving}
-                className={inputClass(errors.kategori)}
+                disabled={saving || loadingCats}
+                className={inputClass(errors.kategoriId)}
               >
-                {KATEGORI_KELUAR.map((k) => (
-                  <option key={k} value={k}>
-                    {k}
+                <option value="">{loadingCats ? "Memuat kategori..." : "-- Pilih Kategori --"}</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.nama}
                   </option>
                 ))}
               </select>
-              {errors.kategori && <p className="mt-1 text-xs text-red-600">{errors.kategori}</p>}
+              {errors.kategoriId && <p className="mt-1 text-xs text-red-600">{errors.kategoriId}</p>}
             </div>
           </div>
 
@@ -202,7 +236,6 @@ export default function ExpenseForm({ initialData, onSubmit, onClose }) {
                 placeholder="Contoh: 150000"
                 className={inputClass(errors.jumlah)}
               />
-              {/* Langkah 2.9: pratinjau format rupiah saat jumlah valid */}
               {errors.jumlah ? (
                 <p className="mt-1 text-xs text-red-600">{errors.jumlah}</p>
               ) : (
@@ -232,23 +265,30 @@ export default function ExpenseForm({ initialData, onSubmit, onClose }) {
             </div>
           </div>
 
-          <div>
-            <label htmlFor="catatan" className="mb-1 block text-sm font-medium">
-              Catatan <span className="font-normal text-gray-400">(opsional)</span>
-            </label>
-            <textarea
-              id="catatan"
-              name="catatan"
-              rows={2}
-              value={form.catatan}
-              onChange={handleChange}
-              disabled={saving}
-              placeholder="Contoh: dibeli di toko langganan, nota disimpan"
-              className={inputClass(errors.catatan)}
-            />
-          </div>
+          {form.metode === "transfer_bank" && (
+            <div>
+              <label htmlFor="bankId" className="mb-1 block text-sm font-medium">
+                Bank <span className="text-red-600">*</span>
+              </label>
+              <select
+                id="bankId"
+                name="bankId"
+                value={form.bankId}
+                onChange={handleBankChange}
+                disabled={saving || loadingBanks}
+                className={inputClass(errors.bank)}
+              >
+                <option value="">{loadingBanks ? "Memuat bank..." : "-- Pilih Bank --"}</option>
+                {banks.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.nama}
+                  </option>
+                ))}
+              </select>
+              {errors.bank && <p className="mt-1 text-xs text-red-600">{errors.bank}</p>}
+            </div>
+          )}
 
-          {/* Langkah 2.10: tombol terkunci saat menyimpan */}
           <div className="flex justify-end gap-2 pt-2">
             <button
               type="button"
@@ -260,7 +300,7 @@ export default function ExpenseForm({ initialData, onSubmit, onClose }) {
             </button>
             <button
               type="submit"
-              disabled={saving}
+              disabled={saving || loadingCats}
               className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-secondary disabled:opacity-60"
             >
               {saving ? "Menyimpan..." : "Simpan"}

@@ -45,8 +45,8 @@ export default function Dashboard() {
 
   // Langkah 4.2: muat booking saat halaman dibuka
   useEffect(() => {
-    getBookings()
-      .then(setBookings)
+    getBookings(1, 100) // Ambil data dengan limit yang cukup untuk dashboard
+      .then((res) => setBookings(res.data))
       .catch((err) =>
         setError(
           err instanceof TypeError

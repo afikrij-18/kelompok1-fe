@@ -95,7 +95,7 @@ export default function LayananTable({
         <table className="w-full text-left text-sm">
           <thead className="bg-soft text-primary">
             <tr>
-              {["No", "Nama Layanan", "Kategori", "Harga", "Aksi"].map((h) => (
+              {["No", "Nama Layanan", "Kategori", "Harga", "Garansi", "Aksi"].map((h) => (
                 <th key={h} className="px-3 py-2">
                   {h}
                 </th>
@@ -126,6 +126,9 @@ export default function LayananTable({
                 <td className="px-3 py-2">
                   Rp {l.harga.toLocaleString("id-ID")}
                 </td>
+                <td className="px-3 py-2 text-secondary">
+                  {l.garansi > 0 ? `${l.garansi} Hari` : "-"}
+                </td>
                 <td className="px-3 py-2">
                   <div className="flex gap-2">
                     <button
@@ -149,7 +152,7 @@ export default function LayananTable({
 
             {rows.length === 0 && (
               <tr>
-                <td colSpan={5} className="py-6 text-center text-gray-500">
+                <td colSpan={6} className="py-6 text-center text-gray-500">
                   Layanan tidak ditemukan
                 </td>
               </tr>

@@ -110,6 +110,11 @@ export default function ExpenseTable({ data, onEdit, onDelete }) {
                 </td>
                 <td className="px-3 py-2">
                   <p className="font-medium">{e.keterangan}</p>
+                  {e.bank && (
+                    <span className="inline-block mt-0.5 rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold text-blue-600">
+                      Bank: {e.bank}
+                    </span>
+                  )}
                   {e.catatan && (
                     <p className="text-xs text-gray-500">{e.catatan}</p>
                   )}

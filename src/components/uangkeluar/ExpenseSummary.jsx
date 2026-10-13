@@ -2,6 +2,7 @@
 // Langkah 6: tiga kartu ringkasan dan rekap per kategori
 import { TrendingDown, Receipt, Tag } from "lucide-react";
 import { formatRupiah } from "../../utils/booking";
+import { ringkasPengeluaran } from "../../utils/pengeluaran";
 
 // Langkah 6.1: satu kartu angka
 function Kartu({ icon: Icon, judul, nilai, keterangan }) {
@@ -17,30 +18,32 @@ function Kartu({ icon: Icon, judul, nilai, keterangan }) {
   );
 }
 
-// Langkah 6.2: ringkasan = hasil ringkasPengeluaran, periode = teks periode yang dipilih
-export default function ExpenseSummary({ ringkasan, periode }) {
+// ringkasan bisa dikirim dari parent, atau dihitung langsung dari data
+export default function ExpenseSummary({ ringkasan, periode, data = [] }) {
+  const r = ringkasan || ringkasPengeluaran(data);
+  if (!r) return null;
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Kartu
           icon={TrendingDown}
           judul="Total Pengeluaran"
-          nilai={formatRupiah(ringkasan.total)}
+          nilai={formatRupiah(r.total)}
           keterangan={periode}
         />
         <Kartu
           icon={Receipt}
           judul="Jumlah Catatan"
-          nilai={`${ringkasan.jumlah} catatan`}
+          nilai={`${r.jumlah} catatan`}
           keterangan={periode}
         />
         <Kartu
           icon={Tag}
           judul="Kategori Terbesar"
-          nilai={ringkasan.terbesar ? ringkasan.terbesar.kategori : "-"}
+          nilai={r.terbesar ? r.terbesar.kategori : "-"}
           keterangan={
-            ringkasan.terbesar
-              ? `${formatRupiah(ringkasan.terbesar.total)} (${ringkasan.terbesar.persen}%)`
+            r.terbesar
+              ? `${formatRupiah(r.terbesar.total)} (${r.terbesar.persen}%)`
               : "Belum ada pengeluaran"
           }
         />
@@ -52,13 +55,13 @@ export default function ExpenseSummary({ ringkasan, periode }) {
           Rekap per Kategori
         </h2>
 
-        {ringkasan.perKategori.length === 0 ? (
+        {r.perKategori.length === 0 ? (
           <p className="text-sm text-gray-500">
             Belum ada pengeluaran pada periode ini.
           </p>
         ) : (
           <div className="grid grid-cols-1 gap-x-8 gap-y-4 md:grid-cols-2">
-            {ringkasan.perKategori.map((k) => (
+            {r.perKategori.map((k) => (
               <div key={k.kategori}>
                 <div className="mb-1 flex justify-between text-sm">
                   <span className="font-medium text-slate-800">

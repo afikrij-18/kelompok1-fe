@@ -1,5 +1,6 @@
 // src/components/booking/StepReview.jsx  (FE, DIGANTI seluruh isi)
 // periksa semua data sebelum disimpan
+import { useState, useEffect } from "react";
 import {
   User,
   Snowflake,
@@ -11,6 +12,7 @@ import {
   Wrench,
   Wallet,
 } from "lucide-react";
+import { getBanks } from "../../services/expenseService";
 import {
   BIAYA_KUNJUNGAN,
   TAMPILKAN_BIAYA_KUNJUNGAN,
@@ -27,7 +29,7 @@ import {
   inputClass,
 } from "../../utils/booking";
 import { METODE_OPSI } from "../../services/transactionMapper";
-import { BANK_OPSI } from "../../utils/pembayaran";
+import { susunCatatanBayar } from "../../utils/pembayaran";
 
 function Bagian({ icon: Icon, judul, onUbah, children }) {
   return (
@@ -74,9 +76,33 @@ export default function StepReview({
   const durasi = hitungDurasi(ringkasan);
   const sisa = total - sudahDibayar;
 
-// Pilihan Metode Pembayaran
-  // Gunakan `PembayaranSection` atau tiru logikanya
-  const ubahBayar = (field, value) => onBayarChange({ ...bayar, [field]: value });
+  const [banks, setBanks] = useState([]);
+  const [loadingBanks, setLoadingBanks] = useState(false);
+
+  useEffect(() => {
+    if (bayar.status === "lunas" && bayar.metode === "transfer_bank" && banks.length === 0) {
+      setLoadingBanks(true);
+      getBanks("active")
+        .then((list) => {
+          setBanks(list);
+          if (list.length > 0 && !bayar.bankId) {
+            onBayarChange({ ...bayar, bankId: String(list[0].id), bank: list[0].nama });
+          }
+        })
+        .catch(() => setBanks([]))
+        .finally(() => setLoadingBanks(false));
+    }
+  }, [bayar.status, bayar.metode]);
+
+  // Pilihan Metode Pembayaran
+  const ubahBayar = (field, value) => {
+    let update = { ...bayar, [field]: value };
+    if (field === "metode" && value === "transfer_bank" && banks.length > 0) {
+      update.bankId = String(banks[0].id);
+      update.bank = banks[0].nama;
+    }
+    onBayarChange(update);
+  };
   
   // Pilihan status: belum/lunas
   const pilihanBayar = (nilai, judul, keterangan) => (
@@ -218,17 +244,24 @@ export default function StepReview({
               {bayar.metode === "transfer_bank" ? (
                 <div>
                   <label htmlFor="pilihBank" className="mb-1 block text-xs font-bold text-slate-800">
-                    Pilih Bank Tujuan
+                    Pilih Bank Tujuan {loadingBanks && <span className="text-xs text-slate-400">(memuat...)</span>}
                   </label>
                   <select
                     id="pilihBank"
-                    value={bayar.bank}
-                    onChange={(e) => ubahBayar("bank", e.target.value)}
+                    value={bayar.bankId || ""}
+                    onChange={(e) => {
+                      const hit = banks.find((b) => String(b.id) === e.target.value);
+                      onBayarChange({ ...bayar, bankId: e.target.value, bank: hit ? hit.nama : "" });
+                    }}
                     className={inputClass(false)}
                   >
-                    {BANK_OPSI.map((b) => (
-                      <option key={b} value={b}>{b}</option>
-                    ))}
+                    {banks.length === 0 ? (
+                      <option value="">{loadingBanks ? "Memuat bank..." : "-- Tidak ada bank --"}</option>
+                    ) : (
+                      banks.map((b) => (
+                        <option key={b.id} value={b.id}>{b.nama}</option>
+                      ))
+                    )}
                   </select>
                 </div>
               ) : (
