@@ -39,7 +39,7 @@ export async function cekStatusBooking({ kode, telepon }) {
   const b = bookingDariApi(body.data);
   return {
     ...b,
-    lunas: Boolean(body.data.is_paid ?? body.data.paid ?? false),
+    lunas: b.paid ?? Boolean(body.data.is_paid ?? body.data.paid ?? false),
     // nama teknisi hanya tampil jika backend mengirimnya
     teknisi: body.data.technician?.name || body.data.technician_name || "",
   };

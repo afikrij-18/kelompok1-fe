@@ -120,6 +120,23 @@ export default function Sidebar() {
     navigate("/login", { replace: true });
   };
 
+  // Filter menu berdasarkan role
+  const filteredMenuOperasional = menuOperasional.filter((m) => {
+    if (m.name === "User" && user?.role !== "owner") return false;
+    return true;
+  });
+
+  const filteredMenuLaporan = menuLaporan.filter((m) => {
+    if (user?.role !== "owner") return false;
+    return true;
+  });
+
+  // Pintasan pengaturan: untuk admin hanya profil (tab), bukan pengaturan usaha
+  const filteredMenuPengguna = menuPengguna.filter((m) => {
+    if (m.name === "Pengaturan Usaha" && user?.role !== "owner") return false;
+    return true;
+  });
+
   return (
     <aside className="hidden h-full w-64 shrink-0 flex-col justify-between bg-primary p-4 text-white md:flex">
       <div className="min-h-0 flex-1 overflow-y-auto">
@@ -140,9 +157,13 @@ export default function Sidebar() {
             </p>
           </div>
         </Link>
-        <MenuGroup title="Menu Operasional" items={menuOperasional} />
-        <div className="my-4 border-t border-white/20" />
-        <MenuGroup title="Laporan & Sistem" items={menuLaporan} />
+        <MenuGroup title="Menu Operasional" items={filteredMenuOperasional} />
+        {filteredMenuLaporan.length > 0 && (
+          <>
+            <div className="my-4 border-t border-white/20" />
+            <MenuGroup title="Laporan & Sistem" items={filteredMenuLaporan} />
+          </>
+        )}
       </div>
 
       {/* Langkah 3.4: kartu pengguna, klik avatar dan nama membuka menu, logout di sebelah kanan */}
@@ -162,7 +183,7 @@ export default function Sidebar() {
               </span>
             </div>
             <ul className="p-1">
-              {menuPengguna.map((m) => {
+              {filteredMenuPengguna.map((m) => {
                 const Icon = m.icon;
                 return (
                   <li key={m.name}>

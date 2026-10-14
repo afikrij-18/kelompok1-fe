@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Search, Pencil, Trash2, Plus } from "lucide-react";
 import Pagination from "../Pagination";
 import usePagination from "../hooks/usePagination";
+import { getUser } from "../../services/authService";
 
 const statusColor = {
   Aktif: "bg-green-100 text-green-700",
@@ -15,6 +16,8 @@ const filterList = ["Semua", "Aktif", "Nonaktif"];
 export default function TeknisiTable({ data, onAdd, onEdit, onDelete }) {
   const [keyword, setKeyword] = useState("");
   const [filter, setFilter] = useState("Semua");
+
+  const isOwner = getUser()?.role === "owner";
 
   const rows = data.filter((t) => {
     const cocokKata =
@@ -102,13 +105,15 @@ export default function TeknisiTable({ data, onAdd, onEdit, onDelete }) {
                     >
                       <Pencil size={16} />
                     </button>
-                    <button
-                      onClick={() => onDelete(t)}
-                      title="Hapus"
-                      className="rounded p-1.5 text-red-600 hover:bg-red-50"
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                    {isOwner && (
+                      <button
+                        onClick={() => onDelete(t)}
+                        title="Hapus"
+                        className="rounded p-1.5 text-red-600 hover:bg-red-50"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>

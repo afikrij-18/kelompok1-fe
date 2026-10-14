@@ -2,6 +2,7 @@
 // Langkah 7: tabel uang keluar dengan pencarian, filter kategori, dan pagination
 import { useState } from "react";
 import { Search, Pencil, Trash2 } from "lucide-react";
+import { getUser } from "../../services/authService";
 import {
   KATEGORI_KELUAR,
   WARNA_KATEGORI,
@@ -16,6 +17,8 @@ import usePagination from "../hooks/usePagination";
 export default function ExpenseTable({ data, onEdit, onDelete }) {
   const [keyword, setKeyword] = useState("");
   const [kategori, setKategori] = useState("Semua");
+
+  const isOwner = getUser()?.role === "owner";
 
   // Langkah 7.2: saring berdasarkan keterangan dan kategori
   const rows = data.filter((e) => {
@@ -127,20 +130,25 @@ export default function ExpenseTable({ data, onEdit, onDelete }) {
                 </td>
                 <td className="px-3 py-2">
                   <div className="flex gap-2">
-                    <button
-                      onClick={() => onEdit(e)}
-                      title="Edit"
-                      className="rounded p-1.5 text-secondary hover:bg-soft"
-                    >
-                      <Pencil size={16} />
-                    </button>
-                    <button
-                      onClick={() => onDelete(e)}
-                      title="Hapus"
-                      className="rounded p-1.5 text-red-600 hover:bg-red-50"
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                    {isOwner && (
+                      <>
+                        <button
+                          onClick={() => onEdit(e)}
+                          title="Edit"
+                          className="rounded p-1.5 text-secondary hover:bg-soft"
+                        >
+                          <Pencil size={16} />
+                        </button>
+                        <button
+                          onClick={() => onDelete(e)}
+                          title="Hapus"
+                          className="rounded p-1.5 text-red-600 hover:bg-red-50"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </>
+                    )}
+                    {!isOwner && <span className="text-[11px] text-gray-400">-</span>}
                   </div>
                 </td>
               </tr>

@@ -279,17 +279,27 @@ export default function Tracking() {
                   <p className="font-bold text-[#0a2540]">
                     Jadwal: {hasil.jadwal} WIB
                   </p>
-                  <ul className="mt-2 space-y-1 text-xs text-[#434751]">
+                  <ul className="mt-3 space-y-2 text-xs text-[#434751]">
                     {hasil.items.map((it, i) => (
-                      <li key={it.id ?? i}>
-                        {it.layanan || "Layanan"}
-                        {it.unit ? (
-                          <span className="text-slate-400"> ({it.unit})</span>
-                        ) : null}
+                      <li key={it.id ?? i} className="flex items-center justify-between gap-3 border-b border-[#c4e2f5] pb-2 last:border-0 last:pb-0">
+                        <span className="truncate font-medium text-slate-900">{it.layanan}</span>
+                        {it.warrantyExpiry ? (
+                          <span className="inline-flex shrink-0 items-center gap-1 rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700">
+                            🛡️ s/d {new Date(it.warrantyExpiry).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}
+                          </span>
+                        ) : it.garansi > 0 ? (
+                          <span className="inline-flex shrink-0 items-center gap-1 rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
+                            🛡️ Garansi {it.garansi} Hari (belum aktif)
+                          </span>
+                        ) : (
+                          <span className="shrink-0 text-[10px] text-gray-400">
+                            Tanpa garansi
+                          </span>
+                        )}
                       </li>
                     ))}
                   </ul>
-                  <div className="mt-3 flex justify-between border-t border-[#c4e2f5] pt-2 text-xs">
+                  <div className="mt-4 flex justify-between border-t border-[#c4e2f5] pt-3 text-xs">
                     <span>Total tagihan</span>
                     <span className="font-bold text-[#0a2540]">
                       {formatRupiah(hasil.total)}

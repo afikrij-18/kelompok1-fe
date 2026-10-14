@@ -29,7 +29,7 @@ function App() {
           {/* form booking untuk pelanggan, berbeda dari form admin di /booking/baru */}
           <Route path="/pesan" element={<PesanService />} />
 
-          {/* Langkah 2.2: lapis pertama cek login, lapis kedua layout dengan sidebar */}
+          {/* Route untuk Admin & Owner */}
           <Route element={<ProtectedRoute />}>
             <Route element={<AppLayout />}>
               <Route path="/dashboard" element={<Dashboard />} />
@@ -39,9 +39,15 @@ function App() {
               <Route path="/booking/:id" element={<BookingDetail />} />
               <Route path="/booking/edit/:id" element={<BookingEdit />} />
               <Route path="/layanan" element={<LayananManagement />} />
-              <Route path="/users" element={<UserManagement />} />
               <Route path="/uang-keluar" element={<UangKeluar />} />
               <Route path="/technician" element={<Teknisi />} />
+            </Route>
+          </Route>
+
+          {/* Route Owner saja */}
+          <Route element={<ProtectedRoute roles={["owner"]} />}>
+            <Route element={<AppLayout />}>
+              <Route path="/users" element={<UserManagement />} />
               <Route path="/laporan-penjualan" element={<LaporanPenjualan />} />
               {/* pengaturan akun (profil dan password) */}
               <Route path="/pengaturan" element={<Pengaturan />} />

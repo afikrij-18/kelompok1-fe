@@ -24,13 +24,16 @@ export const fromApi = (b) => {
   // hanya pembayaran berstatus paid yang dihitung
   const totalDibayar = transaksiMentah
     .filter((t) => t.payment_status === "paid")
-    .reduce((j, t) => j + Number(t.amount_paid || 0), 0);
+    .reduce((j, t) => j + (Number(t.amount_paid) || 0), 0);
   const total = Number(b.total_price || 0);
+
+  // Gunakan pembulatan kecil untuk menghindari masalah presisi floating point
+  const isLunas = Math.round(totalDibayar) >= Math.round(total);
 
   return {
     id: b.id,
     kode: b.reg_no,
-    pelanggan: b.customer?.name || "",
+    pelanggan: b.customer_name_snapshot || b.customer?.name || "",
     telepon: b.customer?.phone || "",
     alamatId: b.address_id,
     alamat: b.address?.address || "",
@@ -44,7 +47,7 @@ export const fromApi = (b) => {
     total: b.total_price,
     totalDibayar,
     // lunas kalau pembayaran menutupi total tagihan
-    paid: total > 0 && totalDibayar >= total,
+    paid: total > 0 && isLunas,
     teknisiId: b.technician_id || b.technician?.id || "",
     teknisi: b.technician?.name || "",
     teleponTeknisi: b.technician?.phone || "",
