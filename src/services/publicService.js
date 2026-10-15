@@ -30,10 +30,10 @@ export async function createPublicBooking(payload) {
   return { kode: body.data.reg_no };
 }
 
-// Langkah 3.3: cek status booking dengan nomor registrasi + nomor HP pemesan
-// TODO: samakan nama parameter dan bentuk respons dengan backend
+// Langkah 3.3: cek status booking dengan nomor registrasi
 export async function cekStatusBooking({ kode, telepon }) {
-  const query = new URLSearchParams({ reg_no: kode, phone: telepon });
+  const query = new URLSearchParams({ reg_no: kode });
+  if (telepon) query.append("phone", telepon);
   const body = await apiFetch(`${PUBLIK}/bookings/status?${query}`, { publik: true });
 
   const b = bookingDariApi(body.data);

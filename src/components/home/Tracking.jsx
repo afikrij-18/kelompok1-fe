@@ -54,12 +54,9 @@ export default function Tracking() {
     event.preventDefault();
 
     const kode = registration.trim().toUpperCase();
-    const telepon = phone.replace(/[\s-]/g, "");
     const e = {};
     if (!/^BK-\d{8}-\d{4}$/.test(kode))
       e.registration = "Format kode seperti BK-20261008-3176";
-    if (!/^\d{10,15}$/.test(telepon))
-      e.phone = "No. HP harus 10-15 digit angka";
     setErrors(e);
     if (Object.keys(e).length > 0) return;
 
@@ -68,7 +65,7 @@ export default function Tracking() {
     setMessage("");
     setHasSearched(true);
     try {
-      setHasil(await cekStatusBooking({ kode, telepon }));
+      setHasil(await cekStatusBooking({ kode }));
     } catch (err) {
       if (err instanceof TypeError) {
         setMessage(
@@ -106,7 +103,7 @@ export default function Tracking() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <SectionHeader
           title="SUDAH MELAKUKAN BOOKING?"
-          description="Pantau status service AC Anda menggunakan nomor registrasi dan nomor HP."
+          description="Pantau status service AC Anda menggunakan nomor registrasi."
         />
 
         <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-12">
@@ -122,7 +119,7 @@ export default function Tracking() {
                   Cek Status Service
                 </h3>
                 <p className="text-xs text-[#434751]">
-                  Masukkan nomor registrasi dan nomor HP pemesan
+                  Masukkan nomor registrasi pesanan Anda
                 </p>
               </div>
             </div>
@@ -160,35 +157,7 @@ export default function Tracking() {
                 )}
               </div>
 
-              <div>
-                <label
-                  htmlFor="trackPhone"
-                  className="mb-1.5 block text-xs font-bold text-[#0a2540]"
-                >
-                  No. HP / WhatsApp
-                </label>
-
-                <div className="relative">
-                  <Phone
-                    size={18}
-                    className="absolute left-3.5 top-3 text-[#434751]"
-                  />
-                  <input
-                    id="trackPhone"
-                    value={phone}
-                    onChange={(event) => {
-                      setPhone(event.target.value);
-                      setErrors({ ...errors, phone: "" });
-                    }}
-                    placeholder="Masukkan nomor HP"
-                    type="tel"
-                    className={inputClass(errors.phone)}
-                  />
-                </div>
-                {errors.phone && (
-                  <p className="mt-1 text-xs text-red-600">{errors.phone}</p>
-                )}
-              </div>
+              {/* Hapus input phone, sisakan form registrasi saja */}
 
               <button
                 type="submit"
@@ -324,8 +293,8 @@ export default function Tracking() {
                     <Search size={44} className="mb-3 text-[#c4e2f5]" />
                     <p className="text-[11px] text-[#434751]">
                       {hasSearched
-                        ? "Booking tidak ditemukan. Periksa kembali nomor registrasi dan nomor HP Anda."
-                        : "Masukkan nomor registrasi dan nomor HP untuk melihat status service Anda."}
+                        ? "Booking tidak ditemukan. Periksa kembali nomor registrasi Anda."
+                        : "Masukkan nomor registrasi untuk melihat status service Anda."}
                     </p>
                   </>
                 )}

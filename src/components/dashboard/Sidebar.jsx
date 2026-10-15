@@ -49,9 +49,11 @@ const menuPengguna = [
 function MenuGroup({ title, items }) {
   return (
     <div className="mb-4">
-      <p className="mb-2 px-3 text-xs font-semibold uppercase tracking-wide text-soft">
-        {title}
-      </p>
+      {title && (
+        <p className="mb-2 px-3 text-xs font-semibold uppercase tracking-wide text-soft">
+          {title}
+        </p>
+      )}
       <ul className="space-y-1">
         {items.map((m) => {
           const Icon = m.icon;
@@ -127,7 +129,7 @@ export default function Sidebar() {
   });
 
   const filteredMenuLaporan = menuLaporan.filter((m) => {
-    if (user?.role !== "owner") return false;
+    if (m.name === "Laporan Penjualan" && user?.role !== "owner") return false;
     return true;
   });
 
@@ -158,12 +160,8 @@ export default function Sidebar() {
           </div>
         </Link>
         <MenuGroup title="Menu Operasional" items={filteredMenuOperasional} />
-        {filteredMenuLaporan.length > 0 && (
-          <>
-            <div className="my-4 border-t border-white/20" />
-            <MenuGroup title="Laporan & Sistem" items={filteredMenuLaporan} />
-          </>
-        )}
+        <div className="my-4 border-t border-white/20" />
+        <MenuGroup title={user?.role === "owner" ? "Laporan & Sistem" : ""} items={filteredMenuLaporan} />
       </div>
 
       {/* Langkah 3.4: kartu pengguna, klik avatar dan nama membuka menu, logout di sebelah kanan */}

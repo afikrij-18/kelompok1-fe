@@ -41,6 +41,8 @@ function App() {
               <Route path="/layanan" element={<LayananManagement />} />
               <Route path="/uang-keluar" element={<UangKeluar />} />
               <Route path="/technician" element={<Teknisi />} />
+              {/* pengaturan akun (profil dan password) — admin boleh akses, tab usaha/data-master dibatasi di dalam halaman */}
+              <Route path="/pengaturan" element={<Pengaturan />} />
             </Route>
           </Route>
 
@@ -49,8 +51,6 @@ function App() {
             <Route element={<AppLayout />}>
               <Route path="/users" element={<UserManagement />} />
               <Route path="/laporan-penjualan" element={<LaporanPenjualan />} />
-              {/* pengaturan akun (profil dan password) */}
-              <Route path="/pengaturan" element={<Pengaturan />} />
             </Route>
           </Route>
         </Routes>
