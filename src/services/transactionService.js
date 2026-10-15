@@ -1,9 +1,7 @@
 // src/services/transactionService.js
-// Langkah 2: pemanggilan API transaksi
 import { apiFetch } from "./api";
 import { fromApi } from "./transactionMapper";
 
-// Langkah 2.1: laporan keuangan. Filter hanya aktif jika from dan to diisi keduanya
 export async function getSalesReport({ from, to } = {}) {
   const query = new URLSearchParams();
   if (from && to) {
@@ -11,9 +9,7 @@ export async function getSalesReport({ from, to } = {}) {
     query.set("to", to);
   }
   const qs = query.toString();
-
   const body = await apiFetch(`/transactions/report${qs ? `?${qs}` : ""}`);
-
   return {
     totalOmzet: body.total_revenue || 0,
     totalTransaksi: body.total_transactions || 0,
@@ -22,20 +18,19 @@ export async function getSalesReport({ from, to } = {}) {
   };
 }
 
-// Langkah 2.2: semua transaksi (semua status), untuk riwayat pembayaran dan invoice per booking
 export async function getTransactions() {
   const body = await apiFetch("/transactions");
   return body.data.map(fromApi);
 }
 
-// Langkah 2.3: catat pembayaran lunas untuk satu booking
-// metode = cash | transfer_bank | qris
-export async function createTransaction({ bookingId, metode, jumlah, catatan }) {
+// Catat pembayaran (transfer_bank wajib bankId)
+export async function createTransaction({ bookingId, metode, bankId, jumlah, catatan }) {
   const body = await apiFetch("/transactions", {
     method: "POST",
     body: JSON.stringify({
       booking_id: bookingId,
       payment_method: metode,
+      bank_id: bankId,
       amount_paid: jumlah,
       payment_status: "paid",
       notes: catatan || undefined,

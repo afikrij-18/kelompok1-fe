@@ -3,7 +3,7 @@
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import UnitCard from "./UnitCard";
 
-export default function StepUnits({ units, ringkasan, layananList, errors = {}, onChangeUnit, onRemove, canRemove, onBack, onNext, labelNext, hideNavigation = false, unitIndex = 0 }) {
+export default function StepUnits({ units, ringkasan, layananList, errors = {}, onChangeUnit, onRemove, canRemove, onBack, onNext, labelNext, hideNavigation = false, unitIndex = 0, changedIdx = [] }) {
   return (
     <div className="space-y-4">
         {units.map((u, i) => (
@@ -16,6 +16,7 @@ export default function StepUnits({ units, ringkasan, layananList, errors = {}, 
             layananList={layananList}
             onChange={(field, value) => onChangeUnit(u.uid, field, value)}
             onRemove={() => onRemove(u.uid)}
+            highlight={changedIdx[i]}
           />
         ))}
 

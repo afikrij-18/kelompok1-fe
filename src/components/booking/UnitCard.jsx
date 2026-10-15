@@ -8,13 +8,21 @@ const selectKecil =
   "w-full rounded border border-soft bg-white px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40";
 
 // Langkah 5.1: onChange(field, value) dipanggil per field, onRemove menghapus unit ini
-export default function UnitCard({ index, data, error = {}, canRemove, layananList, onChange, onRemove }) {
+export default function UnitCard({ index, data, error = {}, canRemove, layananList, onChange, onRemove, highlight = false }) {
   // Langkah 5.2: kategori untuk mengelompokkan pilihan layanan
   const kategoriList = [...new Set(layananList.map((l) => l.kategori))];
   const dipilih = layananList.find((l) => String(l.id) === String(data.layananId));
 
   return (
-    <div className={`rounded-xl bg-white p-6 shadow-sm ${index === 0 ? "border-2 border-primary/40" : "border border-soft"}`}>
+    <div
+      className={`rounded-xl p-6 shadow-sm transition ${
+        highlight
+          ? "border-2 border-amber-300 bg-amber-50/20 ring-1 ring-amber-200"
+          : index === 0
+            ? "border-2 border-primary/40 bg-white"
+            : "border border-soft bg-white"
+      }`}
+    >
       <div className="flex items-center justify-between border-b border-soft pb-3">
         <div className="flex items-center gap-2">
           <span className={`rounded-full px-3 py-0.5 text-xs font-bold text-white ${index === 0 ? "bg-primary" : "bg-secondary"}`}>
@@ -22,6 +30,11 @@ export default function UnitCard({ index, data, error = {}, canRemove, layananLi
             {index === 0 && " (Utama)"}
           </span>
           <span className="text-sm font-bold text-slate-800">Spesifikasi AC {index + 1}</span>
+          {highlight && (
+            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700">
+              ● Berubah
+            </span>
+          )}
         </div>
 
         {/* Langkah 5.3: tombol hapus hanya jika unit lebih dari satu */}

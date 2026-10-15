@@ -1,14 +1,24 @@
 // src/utils/pembayaran.js
 // Langkah 1: logika pembayaran booking, dipakai Detail, Edit, dan cetak invoice
 
-// Langkah 1.1: pilihan bank untuk pembayaran via transfer
+// Langkah 1.1: pilihan bank sekarang dari tabel master `banks` (GET /api/banks)
+// BANK_OPSI kept sebagai fallback jika API gagal — jangan pakai untuk dropdown baru
 export const BANK_OPSI = ["BCA", "Mandiri", "BNI", "BRI"];
 
 // Langkah 1.2: catatan transaksi, untuk transfer ditambah nama bank
 // "Transfer BCA - ref 12345", atau "Transfer BCA" jika catatan kosong
-export const susunCatatanBayar = ({ metode, bank, catatan }) => {
+// bank bisa berupa string nama atau bankId yang di-resolve via banks
+export const susunCatatanBayar = ({ metode, bank, bankId, catatan }, banks = []) => {
   const c = (catatan || "").trim();
-  if (metode === "transfer_bank") return c ? `Transfer ${bank} - ${c}` : `Transfer ${bank}`;
+  if (metode === "transfer_bank") {
+    let namaBank = (bank || "").trim();
+    if (!namaBank && bankId && banks.length) {
+      const hit = banks.find((b) => String(b.id) === String(bankId));
+      if (hit) namaBank = hit.nama;
+    }
+    if (!namaBank) namaBank = bankId ? String(bankId) : "-";
+    return c ? `Transfer ${namaBank} - ${c}` : `Transfer ${namaBank}`;
+  }
   return c;
 };
 

@@ -1,5 +1,5 @@
 // src/services/api.js
-// Langkah 1: tambahan opsi abaikan401 untuk endpoint yang memakai 401 sebagai kesalahan biasa
+// Langkah 1: opsi abaikan401 (401 bukan berarti sesi berakhir) dan publik (tanpa token, untuk halaman pelanggan)
 import { getToken, logout } from "./authService";
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -11,21 +11,20 @@ const pesanDefault = (status) =>
     : "Terjadi kesalahan";
 
 export async function apiFetch(path, options = {}) {
-  // Langkah 1.1: abaikan401 true = 401 dari endpoint ini bukan berarti sesi berakhir
-  // (contoh: password lama salah saat ganti password)
-  const { abaikan401, ...opsiFetch } = options;
+  // Langkah 1.1: publik = pengunjung tanpa login, jangan kirim token dan jangan arahkan ke /login
+  const { abaikan401, publik, ...opsiFetch } = options;
 
   const res = await fetch(`${API_URL}${path}`, {
     ...opsiFetch,
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${getToken()}`,
+      ...(publik ? {} : { Authorization: `Bearer ${getToken()}` }),
       ...opsiFetch.headers,
     },
   });
 
   // token kedaluwarsa atau tidak valid -> bersihkan sesi, kembali ke login
-  if (res.status === 401 && !abaikan401) {
+  if (res.status === 401 && !abaikan401 && !publik) {
     logout();
     window.location.href = "/login";
     throw new Error("Sesi berakhir, silakan login lagi");

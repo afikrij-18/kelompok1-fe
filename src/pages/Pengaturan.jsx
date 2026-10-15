@@ -16,6 +16,7 @@ import {
   TabBooking,
   TabNotifikasi,
 } from "../components/pengaturan/PengaturanUsaha";
+import { TabDataMaster } from "../components/pengaturan/TabDataMaster";
 
 const ROLE = { admin: "Admin", owner: "Owner" };
 
@@ -24,6 +25,7 @@ const TABS = [
   { id: "profil", label: "Profil Saya", icon: UserCircle },
   { id: "keamanan", label: "Keamanan", icon: KeyRound },
   { id: "usaha", label: "Usaha", icon: Store, segera: true },
+  { id: "data-master", label: "Data Master", icon: Store },
   { id: "booking", label: "Booking", icon: CalendarCheck, segera: true },
   { id: "notifikasi", label: "Notifikasi", icon: Bell, segera: true },
 ];
@@ -62,16 +64,21 @@ export default function Pengaturan() {
   // Langkah 2.2: tab aktif disimpan di alamat (?tab=keamanan), jadi menu pengguna bisa menautkannya
   const [params, setParams] = useSearchParams();
   const tabParam = params.get("tab");
-  const tab = TABS.some((t) => t.id === tabParam) ? tabParam : "profil";
 
   // isi awal dari data login di browser, lalu diperbarui dari server
   const lokal = getUser();
+  const role = lokal?.role || "";
+  const TABS_VISIBLE = TABS.filter((t) => {
+    if (role === "admin" && !["profil", "keamanan"].includes(t.id)) return false;
+    return true;
+  });
+  const tab = TABS_VISIBLE.some((t) => t.id === tabParam) ? tabParam : "profil";
+
   const [profil, setProfil] = useState({
     nama: lokal?.name || "",
     email: lokal?.email || "",
     telepon: lokal?.phone || "",
   });
-  const [role, setRole] = useState(lokal?.role || "");
   const [errProfil, setErrProfil] = useState({});
   const [pesanProfil, setPesanProfil] = useState(null);
   const [savingProfil, setSavingProfil] = useState(false);
@@ -88,7 +95,6 @@ export default function Pengaturan() {
       .then((p) => {
         if (batal) return;
         setProfil({ nama: p.nama, email: p.email, telepon: p.telepon });
-        setRole(p.role);
       })
       .catch((err) => {
         if (!batal) setPesanProfil({ tipe: "error", teks: pesanError(err) });
@@ -200,7 +206,7 @@ export default function Pengaturan() {
       <main className="space-y-6 p-6">
         {/* Langkah 2.3: tab pengaturan */}
         <nav className="flex gap-1 overflow-x-auto border-b border-gray-200">
-          {TABS.map((t) => {
+          {TABS_VISIBLE.map((t) => {
             const Icon = t.icon;
             const aktif = t.id === tab;
             return (
@@ -426,10 +432,11 @@ export default function Pengaturan() {
           </form>
         )}
 
-        {/* Langkah 2.6: tab yang masih desain saja */}
-        {tab === "usaha" && <TabUsaha />}
-        {tab === "booking" && <TabBooking />}
-        {tab === "notifikasi" && <TabNotifikasi />}
+        {/* Langkah 2.6: tab yang masih desain saja (hanya untuk owner) */}
+        {role === "owner" && tab === "usaha" && <TabUsaha />}
+        {role === "owner" && tab === "data-master" && <TabDataMaster />}
+        {role === "owner" && tab === "booking" && <TabBooking />}
+        {role === "owner" && tab === "notifikasi" && <TabNotifikasi />}
       </main>
     </>
   );

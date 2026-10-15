@@ -1,44 +1,85 @@
-// src/services/expenseService.js  (FE, BARU)
-// Langkah 4: pengambilan dan penyimpanan data uang keluar
-// Sekarang memakai data dummy di memori (hilang saat halaman di-refresh).
-// Setelah endpoint ada, ganti isi tiap fungsi dengan apiFetch dari "./api",
-// alamat endpoint jangan ditebak, cek routes dan controller uang keluar di backend
-import { expensesDummy } from "../data/expenseDummy";
+// src/services/expenseService.js
+import { apiFetch } from "./api";
 import { fromApi, toApi } from "./expenseMapper";
 
-// Langkah 4.1: salinan data supaya bisa diubah selama aplikasi terbuka
-let data = expensesDummy.map(fromApi);
+const PATH = "/expenses";
+const CATEGORY_PATH = "/expense-categories";
+const BANK_PATH = "/banks";
 
-const jeda = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
-// terbaru di atas: tanggal terbaru dulu, tanggal sama diurutkan dari id terbesar
-const urutkan = (list) => [...list].sort((a, b) => b.tanggal.localeCompare(a.tanggal) || b.id - a.id);
-
-// Langkah 4.2: ambil semua uang keluar
 export async function getExpenses() {
-  await jeda(400);
-  return urutkan(data);
+  const body = await apiFetch(PATH);
+  return (body.data || []).map(fromApi);
 }
 
-// Langkah 4.3: tambah, mengembalikan data yang baru dibuat
+// GET /expense-categories?status=active — untuk dropdown kategori
+export async function getExpenseCategories(status = "active", search = "") {
+  const q = new URLSearchParams();
+  if (status) q.set("status", status);
+  if (search.trim()) q.set("search", search.trim());
+  const qs = q.toString();
+  const body = await apiFetch(`${CATEGORY_PATH}${qs ? `?${qs}` : ""}`);
+  return (body.data || []).map((c) => ({
+    id: c.id,
+    nama: c.nama,
+    deskripsi: c.deskripsi || "",
+    status: c.status,
+    jumlahTransaksi: Number(c.jumlah_transaksi || 0),
+  }));
+}
+
+export async function createExpenseCategory({ nama, deskripsi }) {
+  const body = await apiFetch(CATEGORY_PATH, {
+    method: "POST",
+    body: JSON.stringify({ nama: nama.trim(), deskripsi: deskripsi?.trim() || null }),
+  });
+  return body.data;
+}
+
+export async function updateExpenseCategory(id, { nama, deskripsi, status }) {
+  const payload = {};
+  if (nama !== undefined) payload.nama = nama.trim();
+  if (deskripsi !== undefined) payload.deskripsi = deskripsi?.trim() || null;
+  if (status !== undefined) payload.status = status;
+  const body = await apiFetch(`${CATEGORY_PATH}/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+  return body.data;
+}
+
+export async function deleteExpenseCategory(id) {
+  await apiFetch(`${CATEGORY_PATH}/${id}`, { method: "DELETE" });
+}
+
+// GET /banks?status=active — untuk dropdown bank (master tabel)
+export async function getBanks(status = "active") {
+  const q = status ? `?status=${status}` : "";
+  const body = await apiFetch(`${BANK_PATH}${q}`);
+  return (body.data || []).map((b) => ({
+    id: b.id,
+    nama: b.nama,
+    noRekening: b.no_rekening || "",
+    atasNama: b.atas_nama || "",
+    status: b.status,
+  }));
+}
+
 export async function createExpense(form) {
-  await jeda(300);
-  const idBaru = data.length ? Math.max(...data.map((e) => e.id)) + 1 : 1;
-  const baru = fromApi({ ...toApi(form), id: idBaru });
-  data = [baru, ...data];
-  return baru;
+  const body = await apiFetch(PATH, {
+    method: "POST",
+    body: JSON.stringify(toApi(form)),
+  });
+  return fromApi(body.data);
 }
 
-// Langkah 4.4: ubah
 export async function updateExpense(id, form) {
-  await jeda(300);
-  const diubah = fromApi({ ...toApi(form), id });
-  data = data.map((e) => (e.id === id ? diubah : e));
-  return diubah;
+  const body = await apiFetch(`${PATH}/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(toApi(form)),
+  });
+  return fromApi(body.data);
 }
 
-// Langkah 4.5: hapus
 export async function deleteExpense(id) {
-  await jeda(300);
-  data = data.filter((e) => e.id !== id);
+  await apiFetch(`${PATH}/${id}`, { method: "DELETE" });
 }

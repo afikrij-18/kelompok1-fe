@@ -73,7 +73,7 @@ export default function Navbar() {
 
         <div className="hidden md:flex">
           <a
-            href="/booking"
+            href="/pesan"
             className="inline-flex items-center gap-2 rounded-xl bg-[#2c5ead] px-5 py-2.5 text-xs font-bold text-white shadow-md shadow-[#2c5ead]/30 transition-all hover:-translate-y-0.5 hover:bg-[#1e488d] sm:text-sm"
           >
             <CalendarDays className="h-4 w-4" />

@@ -78,7 +78,7 @@ export const ringkasanHtml = (items) =>
     .join("")}</div>`;
 
 // Langkah 1.6: tabel. kolom = [{ label, kanan? }], baris = [[teks, ...]], kaki = [label, nilai] (opsional)
-export const tabelHtml = ({ kolom, baris, kaki }) => {
+export const tabelHtml = ({ kolom, baris, kaki, rawHtmlCols = [] }) => {
   if (baris.length === 0) return `<p class="kosong">Tidak ada data pada periode ini.</p>`;
 
   const kepala = kolom
@@ -89,7 +89,11 @@ export const tabelHtml = ({ kolom, baris, kaki }) => {
     .map(
       (r) =>
         `<tr>${r
-          .map((c, i) => `<td class="${kolom[i].kanan ? "kanan" : ""}">${esc(c)}</td>`)
+          .map((c, i) => {
+            const isRaw = rawHtmlCols.includes(i);
+            const content = isRaw ? c : esc(c);
+            return `<td class="${kolom[i].kanan ? "kanan" : ""}">${content}</td>`;
+          })
           .join("")}</tr>`
     )
     .join("");

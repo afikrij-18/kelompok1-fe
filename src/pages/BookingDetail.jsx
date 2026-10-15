@@ -17,8 +17,12 @@ import {
   Printer,
   Clock,
   XCircle,
+  Wrench,
+  ShieldCheck,
 } from "lucide-react";
 import { getBookingById } from "../services/bookingService";
+import { getTechnicians } from "../services/technicianService";
+import { updateBookingTechnician } from "../services/bookingService";
 import { createTransaction } from "../services/transactionService";
 import {
   METODE,
@@ -27,10 +31,10 @@ import {
 } from "../services/transactionMapper";
 import { formatRupiah } from "../utils/booking";
 import {
-  BANK_OPSI,
   hitungPembayaran,
   susunCatatanBayar,
 } from "../utils/pembayaran";
+import { getBanks } from "../services/expenseService";
 import { cetakDokumen } from "../utils/cetak";
 import { dokumenInvoice, dokumenDetailBooking } from "../utils/cetakBooking";
 import CetakBookingDialog from "../components/booking/CetakBookingDialog";
@@ -91,9 +95,12 @@ export default function BookingDetail() {
   const [error, setError] = useState("");
 
   const [showBayar, setShowBayar] = useState(false);
+  const [banks, setBanks] = useState([]);
+  const [loadingBanks, setLoadingBanks] = useState(false);
   const [bayar, setBayar] = useState({
     metode: "cash",
-    bank: BANK_OPSI[0],
+    bank: "",
+    bankId: "",
     jumlah: "",
     catatan: "",
   });
@@ -101,6 +108,9 @@ export default function BookingDetail() {
   const [saving, setSaving] = useState(false);
   const [pesan, setPesan] = useState(null);
   const [showCetak, setShowCetak] = useState(false);
+  const [teknisiList, setTeknisiList] = useState([]);
+  const [loadingTeknisi, setLoadingTeknisi] = useState(false);
+  const [updatingTeknisi, setUpdatingTeknisi] = useState(false);
 
   const fetchData = () => {
     setLoading(true);
@@ -113,6 +123,13 @@ export default function BookingDetail() {
 
   useEffect(() => {
     fetchData();
+    setLoadingTeknisi(true);
+    getTechnicians()
+      .then((list) => {
+        setTeknisiList(list.filter((t) => t.status === "Aktif"));
+      })
+      .catch(() => {})
+      .finally(() => setLoadingTeknisi(false));
   }, [id]);
 
   // Langkah 2.3: satu sumber kebenaran untuk status pembayaran
@@ -122,6 +139,21 @@ export default function BookingDetail() {
   const dibatalkan = booking ? booking.status === "Dibatalkan" : false;
 
   // Langkah 2.4: buka form pembayaran, jumlah awal = sisa tagihan
+  useEffect(() => {
+    if (showBayar && banks.length === 0) {
+      setLoadingBanks(true);
+      getBanks("active")
+        .then((list) => {
+          setBanks(list);
+          if (list.length > 0) {
+            setBayar((b) => (b.bankId ? b : { ...b, bankId: String(list[0].id), bank: list[0].nama }));
+          }
+        })
+        .catch(() => {})
+        .finally(() => setLoadingBanks(false));
+    }
+  }, [showBayar]);
+
   const bukaBayar = () => {
     setErrBayar("");
     setBayar((b) => ({ ...b, jumlah: String(pay.sisa) }));
@@ -139,16 +171,22 @@ export default function BookingDetail() {
       setErrBayar(`Jumlah melebihi sisa tagihan (${formatRupiah(pay.sisa)})`);
       return;
     }
+    if (bayar.metode === "transfer_bank" && !bayar.bankId) {
+      setErrBayar("Pilih bank tujuan transfer");
+      return;
+    }
 
     setSaving(true);
     setPesan(null);
     setErrBayar("");
     try {
+      const namaBank = (banks.find((b) => String(b.id) === String(bayar.bankId))?.nama) || bayar.bank || "";
       await createTransaction({
         bookingId: booking.id,
         metode: bayar.metode,
+        bankId: bayar.metode === "transfer_bank" ? bayar.bankId : undefined,
         jumlah: nominal,
-        catatan: susunCatatanBayar(bayar) || undefined,
+        catatan: susunCatatanBayar({ ...bayar, bank: namaBank }, banks) || undefined,
       });
 
       const sisaBaru = pay.sisa - nominal;
@@ -193,7 +231,28 @@ export default function BookingDetail() {
     });
   };
 
-  // Langkah 2.8: untuk warna hijau atau merah di Ringkasan Biaya, anggap layanan dibayar berurutan
+  // Langkah 2.8: ganti/assign teknisi dari halaman detail
+  const handleChangeTeknisi = async (teknisiId) => {
+    setUpdatingTeknisi(true);
+    setPesan(null);
+    try {
+      const baru = await updateBookingTechnician(booking, teknisiId);
+      setBooking(baru);
+      const namaTeknisi =
+        teknisiList.find((t) => String(t.id) === String(teknisiId))?.nama ||
+        "Belum ditugaskan";
+      setPesan({
+        tipe: "sukses",
+        teks: `Teknisi untuk ${baru.kode} diperbarui (${namaTeknisi}).`,
+      });
+    } catch (err) {
+      setPesan({ tipe: "error", teks: pesanError(err) });
+    } finally {
+      setUpdatingTeknisi(false);
+    }
+  };
+
+  // Langkah 2.9: untuk warna hijau atau merah di Ringkasan Biaya, anggap layanan dibayar berurutan
   const paidPerUnit = (() => {
     let sisaTerbayar = pay ? pay.dibayar : 0;
     return (booking?.items || []).map((u) => {
@@ -287,9 +346,10 @@ export default function BookingDetail() {
         )}
 
         <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-3">
-          {/* KIRI: Detail Booking */}
-          <div className="space-y-6 lg:col-span-2">
-            <div className="rounded-xl border border-soft bg-white p-5 shadow">
+          {/* KIRI: Detail Booking — satu card utuh */}
+          <div className="lg:col-span-2">
+            <div className="divide-y divide-soft rounded-xl border border-soft bg-white shadow">
+              <section className="p-5">
               <h2 className="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-slate-900">
                 <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-soft text-primary">
                   <User size={18} />
@@ -325,9 +385,9 @@ export default function BookingDetail() {
                   Catatan booking: {booking.catatan}
                 </p>
               )}
-            </div>
+            </section>
 
-            <div className="rounded-xl border border-soft bg-white p-5 shadow">
+              <section className="p-5">
               <h2 className="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-slate-900">
                 <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-soft text-primary">
                   <Snowflake size={18} />
@@ -357,6 +417,23 @@ export default function BookingDetail() {
                     <p className="mt-1 text-xs text-slate-600">
                       {u.merek} {u.kapasitas} ({u.tipe}) • Lokasi: {u.unit}
                     </p>
+                    <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs">
+                      {u.garansi > 0 ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 font-medium text-emerald-800">
+                          <ShieldCheck size={13} className="text-emerald-600" />
+                          Garansi {u.garansi} Hari
+                          {u.warrantyExpiry && (
+                            <span className="text-[11px] font-normal opacity-75">
+                              (s/d {new Date(u.warrantyExpiry).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })})
+                            </span>
+                          )}
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-slate-400">
+                          <ShieldCheck size={13} className="text-slate-300" /> Tanpa garansi
+                        </span>
+                      )}
+                    </div>
                     {u.catatan && (
                       <p className="mt-1 text-xs italic text-slate-400">
                         Keluhan: {u.catatan}
@@ -365,9 +442,9 @@ export default function BookingDetail() {
                   </div>
                 ))}
               </div>
-            </div>
+            </section>
 
-            <div className="rounded-xl border border-soft bg-white p-5 shadow">
+              <section className="p-5">
               <h2 className="mb-3 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-slate-900">
                 <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-soft text-primary">
                   <CalendarCheck size={18} />
@@ -382,331 +459,376 @@ export default function BookingDetail() {
                   Tanggal: {booking.tanggal} • Jam: {booking.jam} WIB
                 </p>
               </div>
+            </section>
+
+              <section className="p-5">
+                <h2 className="mb-3 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-slate-900">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-soft text-primary">
+                    <Wrench size={18} />
+                  </span>
+                  Teknisi yang Mengerjakan
+                </h2>
+                {/* Hanya munculkan dropdown jika teknisi belum ditugaskan */}
+                {booking.teknisi ? (
+                  <div className="rounded-lg bg-soft/30 p-3">
+                    <p className="text-sm font-bold text-primary">
+                      {booking.teknisi}
+                    </p>
+                    {booking.teleponTeknisi && (
+                      <p className="text-xs text-slate-700">
+                        WhatsApp: <strong>{booking.teleponTeknisi}</strong>
+                      </p>
+                    )}
+                    <p className="mt-2 text-[10px] text-gray-500 italic">
+                      Teknisi sudah ditugaskan. Ubah melalui Daftar Booking atau Edit.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <label className="block text-xs font-bold text-slate-700">
+                      Pilih teknisi
+                    </label>
+                    <select
+                      value={booking.teknisiId || ""}
+                      disabled={updatingTeknisi || loadingTeknisi}
+                      onChange={(e) => handleChangeTeknisi(e.target.value)}
+                      className={inputClass}
+                    >
+                      <option value="">-- Pilih Teknisi --</option>
+                      {teknisiList.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.nama}
+                        </option>
+                      ))}
+                    </select>
+                    {updatingTeknisi && (
+                      <p className="text-xs text-slate-400">Menyimpan penugasan...</p>
+                    )}
+                    {loadingTeknisi && (
+                      <p className="text-xs text-slate-400">Memuat daftar teknisi...</p>
+                    )}
+                  </div>
+                )}
+              </section>
             </div>
 
             <Link
               to="/booking"
-              className="inline-flex items-center gap-2 rounded-lg border border-soft bg-white px-5 py-2.5 text-sm font-bold text-slate-600 hover:bg-soft"
+              className="mt-4 inline-flex items-center gap-2 rounded-lg border border-soft bg-white px-5 py-2.5 text-sm font-bold text-slate-600 hover:bg-soft"
             >
               <ArrowLeft size={18} /> Kembali ke Daftar Booking
             </Link>
           </div>
 
-          {/* KANAN: Detail Pembayaran dan Ringkasan Biaya */}
+          {/* KANAN: Ringkasan Biaya & Detail Pembayaran (Digabung) */}
           <aside className="space-y-6 lg:sticky lg:top-6">
             <div className="rounded-xl border border-secondary/30 bg-white p-5 shadow">
-              <h2 className="mb-3 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-slate-900">
-                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-soft text-secondary">
-                  <CreditCard size={18} />
-                </span>
-                Detail Pembayaran
-              </h2>
+              {/* BAGIAN ATAS: Ringkasan Biaya */}
+              <div className="border-b border-soft pb-5">
+                <h2 className="mb-3 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-slate-900">
+                  <Receipt size={18} className="text-secondary" /> Ringkasan
+                  Biaya
+                </h2>
 
-              <div
-                className={`mb-4 rounded-lg border p-3 ${isPaid ? "border-green-200 bg-green-50" : "border-amber-200 bg-amber-50"}`}
-              >
-                <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
-                  Sisa Tagihan Belum Dibayar
-                </p>
-                <p
-                  className={`text-2xl font-bold ${isPaid ? "text-green-700" : "text-red-600"}`}
-                >
-                  {isPaid ? "LUNAS" : formatRupiah(pay.sisa)}
-                </p>
-                <p className="mt-1 text-xs text-slate-500">
-                  Total {formatRupiah(booking.total)} • Sudah dibayar{" "}
-                  {formatRupiah(pay.dibayar)}
-                </p>
-              </div>
-
-              {/* Langkah 2.10: riwayat transaksi, tiap transaksi punya tombol cetak invoice */}
-              {transaksi.length > 0 && (
-                <div className="mb-4 space-y-2">
-                  {transaksi.map((t) => {
-                    const tampil =
-                      TAMPIL_TRANSAKSI[t.status] || TAMPIL_TRANSAKSI.pending;
-                    const Ikon = tampil.icon;
+                <div className="space-y-2 text-sm">
+                  {booking.items.map((u, i) => {
+                    const lunas = paidPerUnit[i]?.lunas;
                     return (
                       <div
-                        key={t.id}
-                        className={`rounded-lg border p-3 ${tampil.kotak}`}
+                        key={u.id}
+                        className={`flex justify-between gap-2 rounded-lg border px-3 py-2 ${lunas ? "border-green-200 bg-green-50 text-green-800" : "border-red-200 bg-red-50 text-red-700"}`}
                       >
-                        <div className="flex items-center justify-between gap-2">
-                          <p
-                            className={`flex items-center gap-2 text-sm font-bold ${tampil.teks}`}
-                          >
-                            <Ikon size={16} /> {formatRupiah(t.jumlah)}
-                          </p>
+                        <span className="flex items-center gap-2 truncate">
                           <span
-                            className={`rounded-full bg-white/70 px-2 py-0.5 text-[10px] font-bold uppercase ${tampil.teks}`}
-                          >
-                            {tampil.label}
-                          </span>
-                        </div>
-                        <div className="mt-1 space-y-1 text-xs text-slate-600">
-                          <p>
-                            Metode:{" "}
-                            <strong className="text-slate-900">
-                              {METODE[t.metode] || t.metode}
-                            </strong>{" "}
-                            • Invoice{" "}
-                            <strong className="font-mono text-slate-900">
-                              {t.invoice}
-                            </strong>
-                          </p>
-                          {t.tanggal && (
-                            <p>Tanggal: {formatWaktu(t.tanggal)}</p>
-                          )}
-                        </div>
-                        {t.catatan && (
-                          <p className="mt-2 border-t border-black/10 pt-2 text-xs italic text-slate-500">
-                            Catatan: {t.catatan}
-                          </p>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => cetakInvoice(t)}
-                          className="mt-2 flex items-center gap-1.5 text-xs font-bold text-primary hover:underline"
-                        >
-                          <Printer size={13} /> Cetak Invoice
-                        </button>
+                            className={`h-2 w-2 shrink-0 rounded-full ${lunas ? "bg-green-500" : "bg-red-500"}`}
+                          />
+                          {u.layanan} (#{i + 1})
+                        </span>
+                        <span className="shrink-0 font-bold">
+                          {formatRupiah(u.harga)}
+                        </span>
                       </div>
                     );
                   })}
-                </div>
-              )}
-
-              {/* Langkah 2.11: tombol bayar, hilang saat lunas atau dibatalkan */}
-              {isPaid ? (
-                <div className="flex items-center gap-2 rounded-lg bg-soft/40 px-3 py-2 text-xs text-slate-500">
-                  <Wallet size={14} /> Tagihan sudah lunas, tidak perlu bayar
-                  lagi.
-                </div>
-              ) : dibatalkan ? (
-                <div className="flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">
-                  <AlertCircle size={14} /> Booking dibatalkan, pembayaran tidak
-                  dapat dicatat.
-                </div>
-              ) : (
-                <div>
-                  {!showBayar ? (
-                    <button
-                      type="button"
-                      onClick={bukaBayar}
-                      className="w-full rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-white hover:bg-secondary"
-                    >
-                      Catat Pembayaran
-                    </button>
-                  ) : (
-                    <div className="space-y-3 rounded-lg border border-soft bg-soft/20 p-4">
-                      <div>
-                        <label className="mb-1 block text-xs font-bold text-slate-700">
-                          Metode Pembayaran
-                        </label>
-                        <select
-                          value={bayar.metode}
-                          onChange={(e) =>
-                            setBayar({ ...bayar, metode: e.target.value })
-                          }
-                          className={inputClass}
-                        >
-                          {METODE_OPSI.map((m) => (
-                            <option key={m.value} value={m.value}>
-                              {m.label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      {bayar.metode === "transfer_bank" && (
-                        <div>
-                          <label className="mb-1 block text-xs font-bold text-slate-700">
-                            Bank Tujuan
-                          </label>
-                          <select
-                            value={bayar.bank}
-                            onChange={(e) =>
-                              setBayar({ ...bayar, bank: e.target.value })
-                            }
-                            className={inputClass}
-                          >
-                            {BANK_OPSI.map((b) => (
-                              <option key={b} value={b}>
-                                {b}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                      )}
-
-                      <div>
-                        <div className="mb-1 flex items-center justify-between">
-                          <label className="text-xs font-bold text-slate-700">
-                            Jumlah Dibayar (Rp)
-                          </label>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setErrBayar("");
-                              setBayar({ ...bayar, jumlah: String(pay.sisa) });
-                            }}
-                            className="text-[11px] font-bold text-secondary hover:underline"
-                          >
-                            Lunasi sisa
-                          </button>
-                        </div>
-                        <input
-                          type="number"
-                          min="1"
-                          max={pay.sisa}
-                          value={bayar.jumlah}
-                          onChange={(e) => {
-                            setErrBayar("");
-                            setBayar({ ...bayar, jumlah: e.target.value });
-                          }}
-                          className={`${inputClass} ${errBayar ? "border-red-500" : ""}`}
-                        />
-                        {errBayar ? (
-                          <p className="mt-1 text-xs text-red-600">
-                            {errBayar}
-                          </p>
-                        ) : (
-                          <p className="mt-1 text-xs text-slate-400">
-                            Boleh kurang dari sisa (DP atau cicilan), maksimal{" "}
-                            {formatRupiah(pay.sisa)}.
-                          </p>
-                        )}
-                      </div>
-
-                      <div>
-                        <label className="mb-1 block text-xs font-bold text-slate-700">
-                          Catatan (opsional)
-                        </label>
-                        <input
-                          type="text"
-                          placeholder={
-                            bayar.metode === "transfer_bank"
-                              ? "No. referensi / keterangan"
-                              : "Catatan pembayaran"
-                          }
-                          value={bayar.catatan}
-                          onChange={(e) =>
-                            setBayar({ ...bayar, catatan: e.target.value })
-                          }
-                          className={inputClass}
-                        />
-                      </div>
-
-                      {/* peringatan: backend mengubah status booking menjadi Selesai saat tagihan lunas */}
-                      {Number(bayar.jumlah) === pay.sisa &&
-                        booking.status !== "Selesai" && (
-                          <p className="flex items-start gap-1.5 rounded-lg bg-amber-50 p-2 text-xs text-amber-800">
-                            <AlertCircle
-                              size={14}
-                              className="mt-0.5 shrink-0"
-                            />
-                            Melunasi tagihan membuat sistem mengubah status
-                            booking menjadi Selesai.
-                          </p>
-                        )}
-
-                      <div className="flex gap-2 pt-1">
-                        <button
-                          type="button"
-                          onClick={handleBayar}
-                          disabled={saving}
-                          className="flex-1 rounded-lg bg-primary px-4 py-2 text-sm font-bold text-white hover:bg-secondary disabled:opacity-60"
-                        >
-                          {saving ? "Menyimpan..." : "Simpan Pembayaran"}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setShowBayar(false)}
-                          disabled={saving}
-                          className="rounded-lg border border-soft bg-white px-4 py-2 text-sm font-bold text-slate-600 hover:bg-soft disabled:opacity-60"
-                        >
-                          Batal
-                        </button>
-                      </div>
-                    </div>
+                  {booking.items.length === 0 && (
+                    <p className="text-xs text-slate-400">Tidak ada layanan.</p>
                   )}
                 </div>
-              )}
-            </div>
 
-            {/* Ringkasan Biaya: hijau = sudah dibayar, merah = belum dibayar */}
-            <div className="rounded-xl border border-soft bg-white p-5 shadow">
-              <h2 className="mb-3 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-slate-900">
-                <Receipt size={18} className="text-secondary" /> Ringkasan Biaya
-              </h2>
-
-              <div className="space-y-2 text-sm">
-                {booking.items.map((u, i) => {
-                  const lunas = paidPerUnit[i]?.lunas;
-                  return (
-                    <div
-                      key={u.id}
-                      className={`flex justify-between gap-2 rounded-lg border px-3 py-2 ${lunas ? "border-green-200 bg-green-50 text-green-800" : "border-red-200 bg-red-50 text-red-700"}`}
-                    >
-                      <span className="flex items-center gap-2 truncate">
-                        <span
-                          className={`h-2 w-2 shrink-0 rounded-full ${lunas ? "bg-green-500" : "bg-red-500"}`}
-                        />
-                        {u.layanan} (#{i + 1})
-                      </span>
-                      <span className="shrink-0 font-bold">
-                        {formatRupiah(u.harga)}
-                      </span>
-                    </div>
-                  );
-                })}
-                {booking.items.length === 0 && (
-                  <p className="text-xs text-slate-400">Tidak ada layanan.</p>
-                )}
-              </div>
-
-              <div className="mt-3 flex items-center gap-2 text-[11px] font-medium">
-                <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-green-700">
-                  <span className="h-2 w-2 rounded-full bg-green-500" /> Sudah
-                  dibayar
-                </span>
-                <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-red-700">
-                  <span className="h-2 w-2 rounded-full bg-red-500" /> Belum
-                  dibayar
-                </span>
-              </div>
-
-              <div className="mt-3 border-t border-soft pt-3">
-                <div className="flex justify-between text-xs text-slate-500">
-                  <span>Total tagihan</span>
-                  <span className="font-bold text-slate-900">
-                    {formatRupiah(booking.total)}
+                <div className="mt-3 flex items-center gap-2 text-[11px] font-medium">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-green-700">
+                    <span className="h-2 w-2 rounded-full bg-green-500" /> Sudah
+                    dibayar
+                  </span>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-red-700">
+                    <span className="h-2 w-2 rounded-full bg-red-500" /> Belum
+                    dibayar
                   </span>
                 </div>
-                <div className="flex justify-between text-xs text-slate-500">
-                  <span>Sudah dibayar</span>
-                  <span className="font-bold text-green-700">
-                    {formatRupiah(pay.dibayar)}
+              </div>
+
+              {/* BAGIAN BAWAH: Detail Pembayaran & Transaksi */}
+              <div className="pt-5">
+                <h2 className="mb-3 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-slate-900">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-soft text-secondary">
+                    <CreditCard size={16} />
                   </span>
-                </div>
-                {pay.lebih > 0 && (
-                  <div className="flex justify-between text-xs text-slate-500">
-                    <span>Kelebihan bayar</span>
-                    <span className="font-bold text-blue-700">
-                      {formatRupiah(pay.lebih)}
-                    </span>
-                  </div>
-                )}
-                <div className="mt-2">
-                  <span className="text-xs font-bold uppercase text-slate-400">
+                  Detail Pembayaran
+                </h2>
+
+                <div
+                  className={`mb-4 rounded-lg border p-3 ${isPaid ? "border-green-200 bg-green-50" : "border-amber-200 bg-amber-50"}`}
+                >
+                  <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
                     Sisa Tagihan Belum Dibayar
-                  </span>
+                  </p>
                   <p
                     className={`text-2xl font-bold ${isPaid ? "text-green-700" : "text-red-600"}`}
                   >
                     {isPaid ? "LUNAS (Rp 0)" : formatRupiah(pay.sisa)}
                   </p>
+                  <div className="flex justify-between text-xs text-slate-500">
+                    <span>Total tagihan</span>
+                    <span className="font-bold text-slate-900">
+                      {formatRupiah(booking.total)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-xs text-slate-500">
+                    <span>Sudah dibayar</span>
+                    <span className="font-bold text-green-700">
+                      {formatRupiah(pay.dibayar)}
+                    </span>
+                  </div>
+                  {pay.lebih > 0 && (
+                    <div className="flex justify-between text-xs text-slate-500">
+                      <span>Kelebihan bayar</span>
+                      <span className="font-bold text-blue-700">
+                        {formatRupiah(pay.lebih)}
+                      </span>
+                    </div>
+                  )}
                 </div>
+
+                {/* Riwayat transaksi, tiap transaksi punya tombol cetak invoice */}
+                {transaksi.length > 0 && (
+                  <div className="mb-4 space-y-2">
+                    {transaksi.map((t) => {
+                      const tampil =
+                        TAMPIL_TRANSAKSI[t.status] || TAMPIL_TRANSAKSI.pending;
+                      const Ikon = tampil.icon;
+                      return (
+                        <div
+                          key={t.id}
+                          className={`rounded-lg border p-3 ${tampil.kotak}`}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <p
+                              className={`flex items-center gap-2 text-sm font-bold ${tampil.teks}`}
+                            >
+                              <Ikon size={16} /> {formatRupiah(t.jumlah)}
+                            </p>
+                            <span
+                              className={`rounded-full bg-white/70 px-2 py-0.5 text-[10px] font-bold uppercase ${tampil.teks}`}
+                            >
+                              {tampil.label}
+                            </span>
+                          </div>
+                          <div className="mt-1 space-y-1 text-xs text-slate-600">
+                            <p>
+                              Metode:{" "}
+                              <strong className="text-slate-900">
+                                {METODE[t.metode] || t.metode}
+                              </strong>{" "}
+                              • Invoice{" "}
+                              <strong className="font-mono text-slate-900">
+                                {t.invoice}
+                              </strong>
+                            </p>
+                            {t.tanggal && (
+                              <p>Tanggal: {formatWaktu(t.tanggal)}</p>
+                            )}
+                          </div>
+                          {t.catatan && (
+                            <p className="mt-2 border-t border-black/10 pt-2 text-xs italic text-slate-500">
+                              Catatan: {t.catatan}
+                            </p>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => cetakInvoice(t)}
+                            className="mt-2 flex items-center gap-1.5 text-xs font-bold text-primary hover:underline"
+                          >
+                            <Printer size={13} /> Cetak Invoice
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Tombol bayar, hilang saat lunas atau dibatalkan */}
+                {isPaid ? (
+                  <div className="flex items-center gap-2 rounded-lg bg-soft/40 px-3 py-2 text-xs text-slate-500">
+                    <Wallet size={14} /> Tagihan sudah lunas, tidak perlu bayar
+                    lagi.
+                  </div>
+                ) : dibatalkan ? (
+                  <div className="flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">
+                    <AlertCircle size={14} /> Booking dibatalkan, pembayaran
+                    tidak dapat dicatat.
+                  </div>
+                ) : (
+                  <div>
+                    {!showBayar ? (
+                      <button
+                        type="button"
+                        onClick={bukaBayar}
+                        className="w-full rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-white hover:bg-secondary"
+                      >
+                        Catat Pembayaran
+                      </button>
+                    ) : (
+                      <div className="space-y-3 rounded-lg border border-soft bg-soft/20 p-4">
+                        <div>
+                          <label className="mb-1 block text-xs font-bold text-slate-700">
+                            Metode Pembayaran
+                          </label>
+                          <select
+                            value={bayar.metode}
+                            onChange={(e) =>
+                              setBayar({ ...bayar, metode: e.target.value })
+                            }
+                            className={inputClass}
+                          >
+                            {METODE_OPSI.map((m) => (
+                              <option key={m.value} value={m.value}>
+                                {m.label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        {bayar.metode === "transfer_bank" && (
+                          <div>
+                            <label className="mb-1 block text-xs font-bold text-slate-700">
+                              Bank Tujuan {loadingBanks && <span className="text-xs text-slate-400">(memuat...)</span>}
+                            </label>
+                            <select
+                              value={bayar.bankId || ""}
+                              onChange={(e) => {
+                                const hit = banks.find((b) => String(b.id) === e.target.value);
+                                setBayar({ ...bayar, bankId: e.target.value, bank: hit ? hit.nama : "" });
+                              }}
+                              className={inputClass}
+                            >
+                              {banks.length === 0 ? (
+                                <option value="">{loadingBanks ? "Memuat bank..." : "-- Tidak ada bank --"}</option>
+                              ) : (
+                                banks.map((b) => (
+                                  <option key={b.id} value={b.id}>
+                                    {b.nama}
+                                  </option>
+                                ))
+                              )}
+                            </select>
+                          </div>
+                        )}
+
+                        <div>
+                          <div className="mb-1 flex items-center justify-between">
+                            <label className="text-xs font-bold text-slate-700">
+                              Jumlah Dibayar (Rp)
+                            </label>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setErrBayar("");
+                                setBayar({
+                                  ...bayar,
+                                  jumlah: String(pay.sisa),
+                                });
+                              }}
+                              className="text-[11px] font-bold text-secondary hover:underline"
+                            >
+                              Lunasi sisa
+                            </button>
+                          </div>
+                          <input
+                            type="number"
+                            min="1"
+                            max={pay.sisa}
+                            value={bayar.jumlah}
+                            onChange={(e) => {
+                              setErrBayar("");
+                              setBayar({ ...bayar, jumlah: e.target.value });
+                            }}
+                            className={`${inputClass} ${errBayar ? "border-red-500" : ""}`}
+                          />
+                          {errBayar ? (
+                            <p className="mt-1 text-xs text-red-600">
+                              {errBayar}
+                            </p>
+                          ) : (
+                            <p className="mt-1 text-xs text-slate-400">
+                              Boleh kurang dari sisa (DP atau cicilan), maksimal{" "}
+                              {formatRupiah(pay.sisa)}.
+                            </p>
+                          )}
+                        </div>
+
+                        <div>
+                          <label className="mb-1 block text-xs font-bold text-slate-700">
+                            Catatan (opsional)
+                          </label>
+                          <input
+                            type="text"
+                            placeholder={
+                              bayar.metode === "transfer_bank"
+                                ? "No. referensi / keterangan"
+                                : "Catatan pembayaran"
+                            }
+                            value={bayar.catatan}
+                            onChange={(e) =>
+                              setBayar({ ...bayar, catatan: e.target.value })
+                            }
+                            className={inputClass}
+                          />
+                        </div>
+
+                        {Number(bayar.jumlah) === pay.sisa &&
+                          booking.status !== "Selesai" && (
+                            <p className="flex items-start gap-1.5 rounded-lg bg-amber-50 p-2 text-xs text-amber-800">
+                              <AlertCircle
+                                size={14}
+                                className="mt-0.5 shrink-0"
+                              />
+                              Melunasi tagihan membuat sistem mengubah status
+                              booking menjadi Selesai.
+                            </p>
+                          )}
+
+                        <div className="flex gap-2 pt-1">
+                          <button
+                            type="button"
+                            onClick={handleBayar}
+                            disabled={saving}
+                            className="flex-1 rounded-lg bg-primary px-4 py-2 text-sm font-bold text-white hover:bg-secondary disabled:opacity-60"
+                          >
+                            {saving ? "Menyimpan..." : "Simpan Pembayaran"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setShowBayar(false)}
+                            disabled={saving}
+                            className="rounded-lg border border-soft bg-white px-4 py-2 text-sm font-bold text-slate-600 hover:bg-soft disabled:opacity-60"
+                          >
+                            Batal
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </aside>

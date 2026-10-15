@@ -42,8 +42,10 @@ export default function JadwalDispatch() {
 
   // Langkah 1.2: muat semua booking saat halaman dibuka
   useEffect(() => {
-    getBookings()
-      .then(setBookings)
+    // Karena getBookings sekarang mengembalikan objek { data: [], meta: {} }
+    // Kita harus mengakses .data
+    getBookings(1, 100) // Ambil data yang cukup untuk jadwal (tambah limit jika perlu)
+      .then((res) => setBookings(res.data))
       .catch((err) => setError(pesanError(err)))
       .finally(() => setLoading(false));
   }, []);
