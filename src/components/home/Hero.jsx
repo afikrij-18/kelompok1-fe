@@ -90,9 +90,9 @@ export default function Hero() {
             <div className="relative w-full max-w-md">
               <div className="relative overflow-hidden rounded-2xl border-4 border-white bg-slate-100 shadow-2xl">
                 <img
-                  alt="Teknisi AC SejukPro profesional sedang mencuci unit AC indoor di rumah pelanggan"
+                  alt="Teknisi AC SAS profesional sedang mencuci unit AC indoor di rumah pelanggan"
                   className="h-112.5 w-full object-cover object-center transition-transform duration-500 hover:scale-105"
-                  src="https://lh3.googleusercontent.com/aida/AEtjO1VRsiISaCMNNY0bR5kL8sVsUCSygKnT5UzRjlwWo2SqdNXf-w0ypZ3aU1Vw6G2ri6ql22tvtdF2slz8pG56KD-H33PAMN80OZ_ZcXDe1k99p01H3ykMl2NLt7oi6HBUydgzcEkk96IXVAaBJXNPnQbHGWnQwu80uXkg5IZNH5i2Slyz_h3IlcaWxufDSnWO9EwVDgF57Nu2ZLQubGI-yowrX8m35VJjF1etCgKV57RCy4zzQIEgRJveW_Y"
+                  src="https://plus.unsplash.com/premium_photo-1682126012378-859ca7a9f4cf?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D"
                 />
 
                 <div className="absolute inset-0 bg-linear-to-t from-[#024594]/80 via-transparent to-transparent" />

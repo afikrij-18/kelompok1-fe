@@ -220,7 +220,7 @@ export default function PesanService() {
             </div>
             <div className="leading-tight">
               <p className="text-xl font-extrabold tracking-tight text-primary">
-                Sejuk<span className="text-secondary">Pro</span>
+                Service <span className="text-secondary">AC Sumbar</span>
               </p>
               <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">
                 AC Service &amp; Booking
@@ -403,7 +403,7 @@ export default function PesanService() {
                     />
                     <span className="text-slate-700">
                       Saya menyatakan data di atas benar dan bersedia dihubungi
-                      oleh admin SejukPro untuk konfirmasi jadwal.
+                      oleh admin SAS untuk konfirmasi jadwal.
                     </span>
                   </label>
                   {errors.setuju && (

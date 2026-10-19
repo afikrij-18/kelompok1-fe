@@ -53,7 +53,7 @@ tfoot td{font-weight:700;background:#f1f7fc}
 export const kopDokumen = ({ judul, keterangan = [] }) => `
 <div class="kop">
   <div>
-    <span class="logo">SejukPro</span>
+    <span class="logo">Service AC Sumbar</span>
     <span class="tag">AC SERVICE &amp; BOOKING</span>
   </div>
   <div class="info-cetak">

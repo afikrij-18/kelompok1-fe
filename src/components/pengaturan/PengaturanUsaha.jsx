@@ -95,7 +95,7 @@ const HARI = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"];
 
 export function TabUsaha() {
   const [usaha, setUsaha] = useState({
-    nama: "SejukPro",
+    nama: "Service AC Sumbar",
     slogan: "AC Service & Booking",
     whatsapp: "",
     email: "",
@@ -159,7 +159,7 @@ export function TabUsaha() {
               type="email"
               value={usaha.email}
               onChange={ubah}
-              placeholder="halo@sejukpro.com"
+              placeholder="halo@serviceacsumbar.com"
               className={inputClass}
             />
           </Bidang>
@@ -327,7 +327,7 @@ export function TabNotifikasi() {
     selesai: false,
   });
   const [template, setTemplate] = useState(
-    "Halo {nama}, booking {kode} untuk {jadwal} sudah kami terima. Terima kasih telah memilih SejukPro.",
+    "Halo {nama}, booking {kode} untuk {jadwal} sudah kami terima. Terima kasih telah memilih Service AC Sumbar.",
   );
 
   const ubah = (kunci) => (nilai) => setAktif({ ...aktif, [kunci]: nilai });

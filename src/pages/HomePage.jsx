@@ -17,7 +17,7 @@ export default function HomePage() {
       <WhyUs />
       <BookingSteps />
       <Tracking />
-      <Testimonials />
+      {/* <Testimonials /> */}
       <FinalCTA />
       <Footer />
     </div>

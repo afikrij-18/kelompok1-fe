@@ -24,7 +24,7 @@ export default function Navbar() {
 
           <div className="flex flex-col">
             <span className="text-xl font-bold leading-none tracking-tight text-[#024594] sm:text-2xl">
-              Sejuk<span className="text-[#1591dc]">Pro</span>
+              Service <span className="text-[#1591dc]">AC Sumbar</span>
             </span>
 
             <span className="mt-1 text-[9px] font-bold uppercase tracking-wider text-[#434751] sm:text-[10px]">

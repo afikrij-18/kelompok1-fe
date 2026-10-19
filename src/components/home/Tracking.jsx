@@ -28,7 +28,7 @@ const TAHAP = [
   },
   {
     judul: "Service Selesai",
-    deskripsi: "Pekerjaan rampung. Terima kasih telah memilih SejukPro.",
+    deskripsi: "Pekerjaan rampung. Terima kasih telah memilih Service Ac Sumbar.",
   },
 ];
 const INDEKS = { Menunggu: 0, Dikonfirmasi: 1, Selesai: 2 };

@@ -26,7 +26,7 @@ export default function Footer() {
               </div>
 
               <span className="text-xl font-bold tracking-tight text-[#024594] sm:text-2xl">
-                Sejuk<span className="text-[#1591dc]">Pro</span>
+                Service <span className="text-[#1591dc]">AC Sumbar</span>
               </span>
             </div>
 
@@ -138,7 +138,7 @@ export default function Footer() {
 
               <div className="flex items-center gap-2">
                 <Mail className="h-4 w-4 text-[#1591dc]" />
-                <span>halo@sejukpro.id</span>
+                <span>halo@serviceacsumbar.id</span>
               </div>
 
               <div className="flex items-start gap-2">
@@ -157,7 +157,7 @@ export default function Footer() {
                 <MapPin className="mt-0.5 h-4 w-4 text-[#1591dc]" />
 
                 <p className="text-xs">
-                  Gedung SejukPro Lt. 3, Jl. Kebon Jeruk No. 88, Jakarta Barat
+                  Gedung SAS Lt. 3, Jl. Kebon Jeruk No. 88, Jakarta Barat
                 </p>
               </div>
             </div>
@@ -168,7 +168,7 @@ export default function Footer() {
         <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-[#c4e2f5] pt-6 text-xs text-[#434751] md:flex-row">
           <div className="flex flex-wrap items-center gap-4">
             <span>
-              © 2026 SejukPro Indonesia. Seluruh hak cipta dilindungi.
+              © 2026 Service AC Sumbar Indonesia. Seluruh hak cipta dilindungi.
             </span>
 
             <a href="#" className="hover:text-[#2c5ead]">

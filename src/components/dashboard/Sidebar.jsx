@@ -142,7 +142,7 @@ export default function Sidebar() {
   return (
     <aside className="hidden h-full w-64 shrink-0 flex-col justify-between bg-primary p-4 text-white md:flex">
       <div className="min-h-0 flex-1 overflow-y-auto">
-        {/* logo sama dengan homepage (ikon salju + SejukPro + keterangan) */}
+        {/* logo sama dengan homepage (ikon salju + Service Ac Sumbar + keterangan) */}
         <Link
           to="/"
           className="mb-6 flex items-center gap-3 border-b border-white/20 pb-4"
@@ -152,7 +152,7 @@ export default function Sidebar() {
           </div>
           <div className="leading-tight">
             <p className="text-xl font-extrabold tracking-tight text-white">
-              Sejuk<span className="text-soft">Pro</span>
+              Service <span className="text-soft">Ac Sumbar</span>
             </p>
             <p className="text-[10px] font-bold uppercase tracking-wide text-soft">
               AC Service &amp; Booking

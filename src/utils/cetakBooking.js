@@ -137,7 +137,7 @@ export function dokumenInvoice({ booking: b, transaksi: t, semuaTransaksi = [] }
       { label: "Sisa Tagihan", nilai: rp(sisa) },
     ]) + info([["Metode", t.metode], ["Catatan", t.catatan]])
   );
-  isi += `<p class="catatan">Terima kasih telah memilih SejukPro. Simpan invoice ini sebagai bukti pembayaran.</p>`;
+  isi += `<p class="catatan">Terima kasih telah memilih Service AC Sumbarr. Simpan invoice ini sebagai bukti pembayaran.</p>`;
 
   return isi;
 }
@@ -200,6 +200,6 @@ export function dokumenDetailBooking({ booking: b, transaksi = [], jenis }) {
     bagianHtml("Layanan", tabelUnit(b, "harga")) +
     bagianHtml("Pembayaran", kotakPembayaran(b, transaksi)) +
     bagianHtml("Riwayat Pembayaran", riwayat(lunas)) +
-    `<p class="catatan">Terima kasih telah memilih SejukPro.</p>`
+    `<p class="catatan">Terima kasih telah memilih Service AC Sumbar.</p>`
   );
 }
