@@ -46,7 +46,7 @@ const menuPengguna = [
   { name: "Pengaturan Usaha", to: "/pengaturan?tab=usaha", icon: Store },
 ];
 
-function MenuGroup({ title, items }) {
+function MenuGroup({ title, items, onClose }) {
   return (
     <div className="mb-4">
       {title && (
@@ -71,6 +71,7 @@ function MenuGroup({ title, items }) {
                         : "hover:bg-accent"
                     }`
                   }
+                  onClick={onClose}
                 >
                   <Icon size={18} />
                   {m.name}
@@ -89,7 +90,7 @@ function MenuGroup({ title, items }) {
   );
 }
 
-export default function Sidebar() {
+export default function Sidebar({ onClose }) {
   const navigate = useNavigate();
 
   const user = getUser();
@@ -140,7 +141,7 @@ export default function Sidebar() {
   });
 
   return (
-    <aside className="hidden h-full w-64 shrink-0 flex-col justify-between bg-primary p-4 text-white md:flex">
+    <aside className="h-full w-64 shrink-0 flex-col justify-between bg-primary p-4 text-white flex">
       <div className="min-h-0 flex-1 overflow-y-auto">
         {/* logo sama dengan homepage (ikon salju + Service Ac Sumbar + keterangan) */}
         <Link
@@ -159,9 +160,9 @@ export default function Sidebar() {
             </p>
           </div>
         </Link>
-        <MenuGroup title="Menu Operasional" items={filteredMenuOperasional} />
+        <MenuGroup title="Menu Operasional" items={filteredMenuOperasional} onClose={onClose} />
         <div className="my-4 border-t border-white/20" />
-        <MenuGroup title={user?.role === "owner" ? "Laporan & Sistem" : ""} items={filteredMenuLaporan} />
+        <MenuGroup title={user?.role === "owner" ? "Laporan & Sistem" : ""} items={filteredMenuLaporan} onClose={onClose} />
       </div>
 
       {/* Langkah 3.4: kartu pengguna, klik avatar dan nama membuka menu, logout di sebelah kanan */}

@@ -242,6 +242,20 @@ export default function Login() {
                 {DEFAULT_PASSWORD}
               </span>
             </p>
+
+            {/* owner hardcode */}
+            <p className="text-xs text-slate-500">
+              Owner:
+              <span className="font-medium text-[#2C5EAD]">
+                owner@example.com
+              </span>
+              /
+              <span className="font-medium text-[#2C5EAD]">
+                admin123
+              </span>
+            </p>
+            
+            
           </div>
         </div>
 
